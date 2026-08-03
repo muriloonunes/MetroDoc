@@ -1,0 +1,176 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "b1782f6c61e804bd506cf836126cd328",
+    "entities": [
+      {
+        "tableName": "reports",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cliente` TEXT NOT NULL, `componente` TEXT NOT NULL, `identificadorCalypso` TEXT NOT NULL, `maquina` TEXT NOT NULL, `numeroMaquina` TEXT NOT NULL, `software` TEXT NOT NULL, `operador` TEXT NOT NULL, `dataHora` TEXT NOT NULL, `qtdCaracteristicas` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cliente",
+            "columnName": "cliente",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "componente",
+            "columnName": "componente",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identificadorCalypso",
+            "columnName": "identificadorCalypso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maquina",
+            "columnName": "maquina",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "numeroMaquina",
+            "columnName": "numeroMaquina",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "software",
+            "columnName": "software",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operador",
+            "columnName": "operador",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataHora",
+            "columnName": "dataHora",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "qtdCaracteristicas",
+            "columnName": "qtdCaracteristicas",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "measurements",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `reportId` INTEGER NOT NULL, `nome` TEXT NOT NULL, `valorMedido` TEXT NOT NULL, `unidade` TEXT NOT NULL, `valorNominal` TEXT NOT NULL, `tolSuperior` TEXT NOT NULL, `tolInferior` TEXT NOT NULL, `desvio` TEXT NOT NULL, `isForaTolerancia` INTEGER NOT NULL, `incluidaRelatorio` INTEGER NOT NULL, FOREIGN KEY(`reportId`) REFERENCES `reports`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reportId",
+            "columnName": "reportId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valorMedido",
+            "columnName": "valorMedido",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unidade",
+            "columnName": "unidade",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valorNominal",
+            "columnName": "valorNominal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tolSuperior",
+            "columnName": "tolSuperior",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tolInferior",
+            "columnName": "tolInferior",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "desvio",
+            "columnName": "desvio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isForaTolerancia",
+            "columnName": "isForaTolerancia",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "incluidaRelatorio",
+            "columnName": "incluidaRelatorio",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "reports",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "reportId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b1782f6c61e804bd506cf836126cd328')"
+    ]
+  }
+}
