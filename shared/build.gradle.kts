@@ -45,6 +45,7 @@ kotlin {
             implementation(libs.apache.pdfbox)
 
             implementation(libs.nucleus.pdfium)
+            implementation(libs.html.to.pdf)
         }
     }
 }

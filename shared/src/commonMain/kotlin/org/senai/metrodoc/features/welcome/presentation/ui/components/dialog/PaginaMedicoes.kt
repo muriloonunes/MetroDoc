@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import org.senai.metrodoc.common.theme.defaultScrollbarStyle
+import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.features.report.model.MeasurementData
@@ -100,7 +100,7 @@ fun PaginaMedicoes(
                 VerticalScrollbar(
                     modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
                     adapter = rememberScrollbarAdapter(state),
-                    style = defaultScrollbarStyle()
+                    style = metroDocDefaultScrollbarStyle()
                 )
             }
         }

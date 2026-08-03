@@ -5,28 +5,41 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.nucleusframework.pdfium.PdfPage
 import dev.nucleusframework.pdfium.rememberPdfReaderState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
 fun PDFViewer(
     pdfPath: String,
+    cachedBytes: ByteArray?,
     modifier: Modifier = Modifier,
+    onBytesLoaded: (String, ByteArray) -> Unit,
 ) {
     val reader = rememberPdfReaderState()
-    LaunchedEffect(pdfPath) {
-        println("PDF path: $pdfPath")
-        if (pdfPath.isNotBlank()) {
-            val file = File(pdfPath)
-            if (file.exists() && file.isFile) {
-                reader.open(file.readBytes())
-            } else {
-                println("Arquivo PDF não encontrado no caminho: $pdfPath")
+    var loadedPath by remember { mutableStateOf("") }
+
+    LaunchedEffect(pdfPath, cachedBytes) {
+        if (pdfPath.isBlank() || loadedPath == pdfPath) return@LaunchedEffect
+        if (cachedBytes != null) {
+            reader.open(cachedBytes)
+        } else {
+            withContext(Dispatchers.IO) {
+                val file = File(pdfPath)
+                if (file.exists() && file.isFile) {
+                    val bytes = file.readBytes()
+                    withContext(Dispatchers.Main) {
+                        reader.open(bytes)
+                        onBytesLoaded(pdfPath, bytes)
+                    }
+                } else {
+                    println("Arquivo PDF não encontrado no caminho: $pdfPath")
+                }
             }
         }
     }

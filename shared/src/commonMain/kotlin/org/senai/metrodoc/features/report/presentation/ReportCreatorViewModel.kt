@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.features.report.data.ReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
@@ -18,6 +19,7 @@ import org.senai.metrodoc.features.report.util.PdfRenderEngine
 class ReportCreatorViewModel(
     private val renderEngine: PdfRenderEngine,
     private val reportRepository: ReportRepository,
+    private val pdfGenerator: PdfGenerator,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ReportCreatorState())
     val state = _state.asStateFlow()
@@ -99,6 +101,15 @@ class ReportCreatorViewModel(
                 }
                 if (intent.path.isNotBlank()) {
                     loadPdf(intent.path)
+                }
+            }
+
+            is ReportCreatorIntent.OnPdfLoaded -> {
+                _state.update {
+                    val pdf = it.pdf
+                    it.copy(
+                        pdf = pdf.plus(intent.pdfPath to intent.bytes),
+                    )
                 }
             }
 
@@ -193,6 +204,29 @@ class ReportCreatorViewModel(
             is ReportCreatorIntent.OnReportFieldChanged -> {
                 _state.update { it.copy(currentReport = intent.updatedData) }
             }
+
+            ReportCreatorIntent.OnGeneratePdf -> {
+                val reportData = _state.value.currentReport ?: return
+                val secoes = _state.value.secoes
+                viewModelScope.launch {
+                    try {
+                        val bytes = pdfGenerator.generatePdfBytes(
+                            reportData = reportData,
+                            secoes = secoes
+                        )
+                        sendEffect(ReportCreatorEffect.OnPdfGenerated(bytes))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        _state.update { it.copy(errorMessage = e.message ?: "Erro ao gerar PDF") }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun sendEffect(effect: ReportCreatorEffect) {
+        viewModelScope.launch {
+            _effect.send(effect)
         }
     }
 

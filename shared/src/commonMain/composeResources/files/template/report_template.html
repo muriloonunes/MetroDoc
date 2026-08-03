@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Relatório Técnico</title>
+    <!-- CSS Injetado diretamente -->
+    <style>
+        {
+                {
+                CSS
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td style="width: 25%; text-align: left;">
+                    <span style="font-weight: bold; color: #005696; font-size: 8pt;">CENTRO DE EXCELÊNCIA</span>
+                </td>
+                <td class="header-title" style="width: 50%;">
+                    RELATÓRIO TÉCNICO<br />
+                    <span style="font-size: 9pt; font-weight: normal;">{{TITULO}}</span>
+                </td>
+                <td style="width: 25%; text-align: right;">
+                    <!-- Tag img adicionada -->
+                    <img src="{{LOGO_SENAI}}" class="logo-img" alt="Logo SENAI" />
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <table class="footer-table">
+            <tr>
+                <td style="text-align: left;">CEM SENAI | ZEISS • Goiânia - GO • Uso restrito ao cliente</td>
+                <td style="text-align: right;" class="page-number"></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Nome batendo com o .replace() no Kotlin -->
+    {{CONTEUDO_SECOES}}
+</body>
+
+</html>

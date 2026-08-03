@@ -8,6 +8,7 @@ import org.senai.metrodoc.features.report.presentation.ui.RightPanelTab
 data class ReportCreatorState(
     val pdfPath: String = "",
     val pdfName: String = "",
+    val pdf: Map<String, ByteArray> = mutableMapOf(),
     val pageCount: Int = 0,
     val currentPage: Int = 0,
     val currentPageImage: ImageBitmap? = null,
@@ -23,6 +24,27 @@ data class ReportCreatorState(
 
 sealed interface ReportCreatorIntent {
     data class OnInit(val path: String, val name: String) : ReportCreatorIntent
+
+    data class OnPdfLoaded(val pdfPath: String, val bytes: ByteArray) : ReportCreatorIntent {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as OnPdfLoaded
+
+            if (pdfPath != other.pdfPath) return false
+            if (!bytes.contentEquals(other.bytes)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = pdfPath.hashCode()
+            result = 31 * result + bytes.contentHashCode()
+            return result
+        }
+    }
+
     data class OnSectionChange(val sectionId: String) : ReportCreatorIntent
     data class OnTabChange(val tab: RightPanelTab) : ReportCreatorIntent
     data object OnNextPage : ReportCreatorIntent
@@ -39,8 +61,26 @@ sealed interface ReportCreatorIntent {
     data class OnAddMeasurement(val sectionId: String) : ReportCreatorIntent
 
     data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent
+
+    data object OnGeneratePdf : ReportCreatorIntent
 }
 
 sealed interface ReportCreatorEffect {
     data object NavigateBack : ReportCreatorEffect
+    data class OnPdfGenerated(val bytes: ByteArray) : ReportCreatorEffect {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as OnPdfGenerated
+
+            if (!bytes.contentEquals(other.bytes)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return bytes.contentHashCode()
+        }
+    }
 }

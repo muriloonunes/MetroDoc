@@ -34,6 +34,7 @@ class PdfParser {
             val file = File(path)
             require(file.exists()) { "Arquivo não encontrado: $path" }
 
+            //todo ver se é possível usar o pdfium pra extrair o texto do pdf
             Loader.loadPDF(file).use { document ->
                 val stripper = PDFTextStripper()
                 val pdfText = stripper.getText(document)

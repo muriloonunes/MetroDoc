@@ -10,10 +10,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
+import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
@@ -36,11 +41,32 @@ fun ReportCreatorScreen(
     onIntent: (ReportCreatorIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+    var pdfBytesToSave by remember { mutableStateOf<ByteArray?>(null) }
+    val saverLauncher = rememberFileSaverLauncher(
+        dialogSettings = FileKitDialogSettings.createDefault()
+    ) { file ->
+        val bytes = pdfBytesToSave
+        if (file != null && bytes != null) {
+            scope.launch {
+                file.write(bytes)
+            }
+        }
+    }
     LaunchedEffect(Unit) {
         effect.collect { effect ->
             when (effect) {
                 is ReportCreatorEffect.NavigateBack -> {
                     onBack()
+                }
+
+                is ReportCreatorEffect.OnPdfGenerated -> {
+                    pdfBytesToSave = effect.bytes
+                    saverLauncher.launch(
+                        suggestedName = "${state.pdfName}.pdf",
+                        defaultExtension = "pdf",
+                        allowedExtensions = setOf("pdf")
+                    )
                 }
             }
         }
@@ -69,7 +95,7 @@ fun ReportCreatorScreen(
             title = "Relatório ${state.currentReport?.cliente ?: "Sem Cliente"} — ${state.pdfName}",
             onBackClick = { onIntent(ReportCreatorIntent.OnBackClicked) },
             onEmitReportClick = {
-                //todo
+                onIntent(ReportCreatorIntent.OnGeneratePdf)
             }
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -146,11 +172,31 @@ fun ReportCreatorScreen(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            when (state.abaDireitaAtiva) {
-                                RightPanelTab.PREVIEW -> Text("Visualização em Tempo Real")
-                                RightPanelTab.PDF_ORIGINAL -> {
-                                    PDFViewer(state.pdfPath)
-                                }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        val isVisible = state.abaDireitaAtiva == RightPanelTab.PREVIEW
+                                        alpha = if (isVisible) 1f else 0f
+                                    }
+                            ) {
+                                Text("Visualização em Tempo Real")
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        val isVisible = state.abaDireitaAtiva == RightPanelTab.PDF_ORIGINAL
+                                        alpha = if (isVisible) 1f else 0f
+                                    }
+                            ) {
+                                PDFViewer(
+                                    pdfPath = state.pdfPath,
+                                    cachedBytes = state.pdf[state.pdfPath],
+                                    onBytesLoaded = { path, bytes ->
+                                        onIntent(ReportCreatorIntent.OnPdfLoaded(path, bytes))
+                                    }
+                                )
                             }
                         }
                     }

@@ -1,11 +1,14 @@
 package org.senai.metrodoc.features.welcome.presentation.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.add
 import org.jetbrains.compose.resources.painterResource
+import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
 
@@ -144,22 +148,32 @@ fun WelcomeContent(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 280.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(5) { index ->
-                    RecentProjectCard(
-                        projectName = "Projeto Exemplo ${index + 1}.pdf",
-                        lastModified = "Hoje, 14:30",
-                        onOpenProject = {},
-                        onExportPdf = {},
-                        onRemoveFromRecent = {},
-                        onDeleteFile = {}
-                    )
+            Box(modifier = Modifier.fillMaxSize()) {
+                val gridState = rememberLazyGridState()
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 280.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    state = gridState,
+                    modifier = Modifier.fillMaxSize().padding(end = 12.dp)
+                ) {
+                    items(10) { index ->
+                        RecentProjectCard(
+                            projectName = "Projeto Exemplo ${index + 1}.pdf",
+                            lastModified = "Hoje, 14:30",
+                            onOpenProject = {},
+                            onExportPdf = {},
+                            onRemoveFromRecent = {},
+                            onDeleteFile = {}
+                        )
+                    }
                 }
+
+                VerticalScrollbar(
+                    adapter = rememberScrollbarAdapter(scrollState = gridState),
+                    style = metroDocDefaultScrollbarStyle(),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
             }
         }
     }

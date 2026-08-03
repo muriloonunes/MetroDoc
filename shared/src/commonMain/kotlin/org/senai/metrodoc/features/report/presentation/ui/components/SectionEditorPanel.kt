@@ -15,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.senai.metrodoc.common.theme.defaultScrollbarStyle
+import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
@@ -216,7 +216,7 @@ fun ResultadosDimensionaisSectionEditor(
                             .align(Alignment.CenterEnd)
                             .fillMaxHeight(),
                         adapter = rememberScrollbarAdapter(listState),
-                        style = defaultScrollbarStyle()
+                        style = metroDocDefaultScrollbarStyle()
                     )
                 }
             }

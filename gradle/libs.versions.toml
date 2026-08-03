@@ -10,6 +10,7 @@ filekit = "0.14.2"
 navigation = "2.9.2"
 pdfbox = "3.0.8"
 pdfium = "152.0.7961.0"
+open-html-pdf = "1.1.65"
 room3 = "3.0.1"
 sqlite = "2.7.0"
 ksp = "2.3.10"
@@ -34,8 +35,11 @@ kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-
 
 systemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector", version.ref = "themeDetector" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
+
+# PDF:
 apache-pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
-nucleus-pdfium = {module = "dev.nucleusframework:pdfium", version.ref = "pdfium"}
+nucleus-pdfium = { module = "dev.nucleusframework:pdfium", version.ref = "pdfium" }
+html-to-pdf = { module = "io.github.openhtmltopdf:openhtmltopdf-pdfbox", version.ref = "open-html-pdf" }
 
 # Room
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }

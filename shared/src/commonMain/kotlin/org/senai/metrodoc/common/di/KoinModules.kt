@@ -6,7 +6,7 @@ import org.senai.metrodoc.features.report.reportModule
 import org.senai.metrodoc.features.welcome.welcomeModule
 
 val sharedModule = module {
-    includes(welcomeModule, reportModule)
+    includes(appModule, welcomeModule, reportModule)
 }
 
 expect val platformModule: Module

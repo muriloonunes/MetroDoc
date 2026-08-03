@@ -252,7 +252,7 @@ fun MetroDocTheme(
 }
 
 @Composable
-fun defaultScrollbarStyle() = ScrollbarStyle(
+fun metroDocDefaultScrollbarStyle() = ScrollbarStyle(
     minimalHeight = 16.dp,
     thickness = 8.dp,
     shape = RoundedCornerShape(4.dp),
