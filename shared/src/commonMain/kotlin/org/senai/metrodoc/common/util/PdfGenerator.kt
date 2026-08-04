@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.features.report.util.PdfRenderEngine
 import java.io.ByteArrayOutputStream
 
 class PdfGenerator {

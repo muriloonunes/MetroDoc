@@ -198,7 +198,9 @@ fun ReportCreatorScreen(
                                 RightPanelTab.PREVIEW -> {
                                     PdfPreviewer(
                                         previewData = state.previewPdfBytes,
-                                        isGenerating = state.isGeneratingPreview
+                                        isGenerating = state.isGeneratingPreview,
+                                        secoes = state.secoes,
+                                        secaoAtivaId = state.secaoAtivaId,
                                     )
                                 }
                                 RightPanelTab.PDF_ORIGINAL -> {

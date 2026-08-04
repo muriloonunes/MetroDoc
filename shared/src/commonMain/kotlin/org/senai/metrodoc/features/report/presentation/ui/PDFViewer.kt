@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.nucleusframework.pdfium.PdfPage
+import dev.nucleusframework.pdfium.PdfReaderState
 import dev.nucleusframework.pdfium.rememberPdfReaderState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,11 +20,20 @@ import java.io.File
 fun PDFViewer(
     pdfPath: String,
     cachedBytes: ByteArray?,
+    targetPage: Int? = null,
     modifier: Modifier = Modifier,
-    onBytesLoaded: (String, ByteArray) -> Unit = { _, _ -> }
+    reader: PdfReaderState = rememberPdfReaderState(),
+    onBytesLoaded: (String, ByteArray) -> Unit = { _, _ -> },
 ) {
-    val reader = rememberPdfReaderState()
     var loadedPath by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(targetPage, reader.pageCount) {
+        if (targetPage != null && targetPage >= 0 && reader.pageCount > 0) {
+            kotlinx.coroutines.delay(50)
+            listState.animateScrollToItem(targetPage)
+        }
+    }
 
     LaunchedEffect(pdfPath, cachedBytes) {
         if (pdfPath.isBlank() || loadedPath == pdfPath) return@LaunchedEffect
@@ -53,7 +63,6 @@ fun PDFViewer(
         when {
             reader.isLoading -> CircularProgressIndicator()
             reader.pageCount > 0 -> {
-                val listState = rememberLazyListState()
                 val pages = (0 until reader.pageCount).toList()
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),

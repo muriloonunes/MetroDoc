@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.features.report.data.ReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
-import org.senai.metrodoc.features.report.util.PdfParser
+import org.senai.metrodoc.common.util.PdfParser
 
 class WelcomeScreenViewModel(
     private val pdfParser: PdfParser,

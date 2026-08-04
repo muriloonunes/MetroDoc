@@ -13,7 +13,7 @@ import org.senai.metrodoc.features.report.data.ReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.features.report.util.PdfRenderEngine
+import org.senai.metrodoc.common.util.PdfRenderEngine
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)

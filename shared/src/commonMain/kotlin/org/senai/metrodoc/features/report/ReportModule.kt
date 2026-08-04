@@ -5,8 +5,8 @@ import org.koin.plugin.module.dsl.viewModel
 import org.senai.metrodoc.features.report.data.InMemoryReportRepository
 import org.senai.metrodoc.features.report.data.ReportRepository
 import org.senai.metrodoc.features.report.presentation.ReportCreatorViewModel
-import org.senai.metrodoc.features.report.util.PdfParser
-import org.senai.metrodoc.features.report.util.PdfRenderEngine
+import org.senai.metrodoc.common.util.PdfParser
+import org.senai.metrodoc.common.util.PdfRenderEngine
 
 val reportModule = module {
     viewModel<ReportCreatorViewModel>()

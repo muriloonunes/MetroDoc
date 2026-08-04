@@ -2,7 +2,6 @@ package org.senai.metrodoc.common.util
 
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.features.report.util.PdfRenderEngine
 
 object ReportHtmlTemplate {
     private var paginaTemplate: String? = null
