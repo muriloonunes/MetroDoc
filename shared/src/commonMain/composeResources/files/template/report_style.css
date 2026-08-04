@@ -222,6 +222,18 @@ div.footer {
     font-weight: bold;
 }
 
+.lista-topicos {
+    margin-top: 10px;
+    padding-left: 20px;
+    font-size: 9.5pt;
+    color: #1c1b1b;
+    line-height: 1.5;
+}
+
+.lista-topicos li {
+    margin-bottom: 6px;
+}
+
 .assinatura-linha {
     width: 300px;
     border-bottom: 1px solid #000;

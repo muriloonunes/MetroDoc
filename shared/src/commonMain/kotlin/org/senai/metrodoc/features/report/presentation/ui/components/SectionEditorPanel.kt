@@ -67,6 +67,13 @@ fun SectionEditorPanel(
                 )
             }
 
+            is ReportSection.InterpretacaoResultados -> {
+                InterpretacaoResultadosSectionEditor(
+                    section = section,
+                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
+                )
+            }
+
             is ReportSection.Conclusao -> {
                 ConclusaoSectionEditor(
                     section = section,
@@ -253,6 +260,35 @@ fun ResultadosDimensionaisSectionEditor(
             isRequired = false,
             onValueChange = { novoResumo ->
                 onDataChanged(section.copy(resumoDimensional = novoResumo))
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun InterpretacaoResultadosSectionEditor(
+    section: ReportSection.InterpretacaoResultados,
+    modifier: Modifier = Modifier,
+    onDataChanged: (ReportSection.InterpretacaoResultados) -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Digite cada tópico em uma linha separada.",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        MetroDocTextField(
+            label = "Tópicos",
+            value = section.topicos,
+            singleLine = false,
+            minLines = 6,
+            onValueChange = {
+                onDataChanged(section.copy(topicos = it))
             },
             modifier = Modifier.fillMaxWidth()
         )

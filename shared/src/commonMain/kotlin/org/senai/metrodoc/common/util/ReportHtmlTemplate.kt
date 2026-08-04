@@ -60,6 +60,8 @@ object ReportHtmlTemplate {
         val templateIdentificacao = ResourceUtils.getResourceAsString("files/template/sections/identificacao.html")
         val templateResultadosDimensionais =
             ResourceUtils.getResourceAsString("files/template/sections/resultados_dimensionais.html")
+        val templateInterpretacaoResultados =
+            ResourceUtils.getResourceAsString("files/template/sections/interpretacao.html")
         val templateConclusao = ResourceUtils.getResourceAsString("files/template/sections/conclusao.html")
 
         secoes.forEach { secao ->
@@ -146,6 +148,14 @@ object ReportHtmlTemplate {
                     sb.append(resultadosDimensionaisHtml)
                 }
 
+                is ReportSection.InterpretacaoResultados -> {
+                    val interpretacaoHtml = templateInterpretacaoResultados
+                        .replace("{{INTERPRETACAO_INDICE}}", secoes.indexOf(secao).toString())
+                        .replace("{{TOPICOS}}", secao.topicos.toHtmlListItem())
+
+                    sb.append(interpretacaoHtml)
+                }
+
                 is ReportSection.Conclusao -> {
                     val conclusaoHtml = templateConclusao
                         .replace("{{CONCLUSAO_INDICE}}", (secoes.size - 1).toString())
@@ -204,5 +214,14 @@ object ReportHtmlTemplate {
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\n", "<br/>")
+    }
+
+    private fun String.toHtmlListItem(): String {
+        return this.lines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString(separator = "\n") { topico ->
+                "<li>${topico.toHtmlText()}</li>"
+            }
     }
 }

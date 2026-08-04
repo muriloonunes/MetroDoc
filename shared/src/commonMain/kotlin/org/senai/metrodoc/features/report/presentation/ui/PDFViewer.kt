@@ -1,9 +1,14 @@
 package org.senai.metrodoc.features.report.presentation.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +19,7 @@ import dev.nucleusframework.pdfium.PdfReaderState
 import dev.nucleusframework.pdfium.rememberPdfReaderState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import java.io.File
 
 @Composable
@@ -65,10 +71,11 @@ fun PDFViewer(
             reader.pageCount > 0 -> {
                 val pages = (0 until reader.pageCount).toList()
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
                     state = listState,
-                    contentPadding = PaddingValues(12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(end = 12.dp),
                 ) {
                     items(pages, key = { pageIndex -> "${loadedPath}_$pageIndex" }) { pageIndex ->
                         PdfPage(
@@ -80,6 +87,11 @@ fun PDFViewer(
                         )
                     }
                 }
+                VerticalScrollbar(
+                    adapter = rememberScrollbarAdapter(listState),
+                    style = metroDocDefaultScrollbarStyle(),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
             }
         }
     }

@@ -9,11 +9,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.common.util.PdfGenerator
+import org.senai.metrodoc.common.util.PdfRenderEngine
 import org.senai.metrodoc.features.report.data.ReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.common.util.PdfRenderEngine
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
@@ -38,6 +38,7 @@ class ReportCreatorViewModel(
             ReportSection.Introducao(),
             ReportSection.Identificacao(reportData = currentReport ?: ReportData()),
             ReportSection.ResultadosDimensionais(measurements = currentReport?.caracteristicas ?: emptyList()),
+            ReportSection.InterpretacaoResultados(),
             ReportSection.Conclusao(),
         )
 
