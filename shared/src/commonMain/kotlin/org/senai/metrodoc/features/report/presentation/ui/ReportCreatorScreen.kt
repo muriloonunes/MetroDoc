@@ -20,6 +20,8 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
 import org.senai.metrodoc.features.report.model.ReportData
@@ -47,13 +49,17 @@ fun ReportCreatorScreen(
         dialogSettings = FileKitDialogSettings.createDefault()
     ) { file ->
         if (file != null) {
-            val bytes = pdfBytesToSave
-            if (bytes != null) {
-                scope.launch {
-                    file.write(bytes)
+            scope.launch {
+                if (pdfBytesToSave == null) {
+                    onIntent(ReportCreatorIntent.OnGeneratePdf(file.path))
                 }
-            } else {
-                onIntent(ReportCreatorIntent.OnGeneratePdf(file.path))
+                val bytes = snapshotFlow { pdfBytesToSave }
+                    .filterNotNull()
+                    .first()
+
+                file.write(bytes)
+
+                pdfBytesToSave = null
             }
         }
     }
@@ -197,7 +203,10 @@ fun ReportCreatorScreen(
                                         alpha = if (isVisible) 1f else 0f
                                     }
                             ) {
-                                PdfPreviewer()
+                                PdfPreviewer(
+                                    previewData = state.previewPdfBytes,
+                                    isGenerating = state.isGeneratingPreview
+                                )
                             }
                             Box(
                                 modifier = Modifier

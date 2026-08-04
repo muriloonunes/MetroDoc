@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.nucleusframework.pdfium.PdfPage
@@ -19,7 +20,7 @@ fun PDFViewer(
     pdfPath: String,
     cachedBytes: ByteArray?,
     modifier: Modifier = Modifier,
-    onBytesLoaded: (String, ByteArray) -> Unit,
+    onBytesLoaded: (String, ByteArray) -> Unit = { _, _ -> }
 ) {
     val reader = rememberPdfReaderState()
     var loadedPath by remember { mutableStateOf("") }
@@ -28,6 +29,7 @@ fun PDFViewer(
         if (pdfPath.isBlank() || loadedPath == pdfPath) return@LaunchedEffect
         if (cachedBytes != null) {
             reader.open(cachedBytes)
+            loadedPath = pdfPath
         } else {
             withContext(Dispatchers.IO) {
                 val file = File(pdfPath)
@@ -44,7 +46,8 @@ fun PDFViewer(
         }
     }
 
-    Column(
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
     ) {
         when {
@@ -53,12 +56,12 @@ fun PDFViewer(
                 val listState = rememberLazyListState()
                 val pages = (0 until reader.pageCount).toList()
                 LazyColumn(
-                    modifier = modifier,
+                    modifier = Modifier.fillMaxSize(),
                     state = listState,
                     contentPadding = PaddingValues(12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    items(pages, key = { it }) { pageIndex ->
+                    items(pages, key = { pageIndex -> "${loadedPath}_$pageIndex" }) { pageIndex ->
                         PdfPage(
                             state = reader,
                             pageIndex = pageIndex,

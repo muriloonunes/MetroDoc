@@ -24,4 +24,25 @@ class PdfGenerator {
         builder.run()
         os.toByteArray()
     }
+
+    suspend fun generatePreviewPdfBytes(
+        reportData: ReportData,
+        secoes: List<ReportSection>,
+        renderEngine: PdfRenderEngine,
+    ): ByteArray = withContext(Dispatchers.IO) {
+        val html = ReportHtmlTemplate.generateHtml(
+            reportData = reportData,
+            secoes = secoes,
+            originalPdfPath = "",
+            renderEngine = renderEngine,
+            isPreview = true
+        )
+        val os = ByteArrayOutputStream()
+        val builder = PdfRendererBuilder()
+
+        builder.withHtmlContent(html, null)
+        builder.toStream(os)
+        builder.run()
+        os.toByteArray()
+    }
 }

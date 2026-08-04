@@ -3,12 +3,10 @@ package org.senai.metrodoc.features.report.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.features.report.data.ReportRepository
@@ -16,7 +14,9 @@ import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.util.PdfRenderEngine
+import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(FlowPreview::class)
 class ReportCreatorViewModel(
     private val renderEngine: PdfRenderEngine,
     private val reportRepository: ReportRepository,
@@ -30,6 +30,7 @@ class ReportCreatorViewModel(
 
     private var renderJob: Job? = null
     private var generatePdfJob: Job? = null
+    private var previewJob: Job? = null
 
     init {
         val currentReport = reportRepository.currentReport.value
@@ -46,47 +47,14 @@ class ReportCreatorViewModel(
                 secoes = initialSections
             )
         }
-    }
 
-
-    private fun loadPdf(path: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
-            runCatching { renderEngine.loadPdf("") }
-                .onSuccess { pages ->
-                    _state.update { it.copy(pageCount = pages, currentPage = 0) }
-                    renderPage(0)
-                }
-                .onFailure { e ->
-                    _state.update {
-                        it.copy(isLoading = false, errorMessage = e.message ?: "Erro ao carregar PDF")
-                    }
-                }
-        }
-    }
-
-    fun renderPage(pageIndex: Int) {
-        val pageCount = _state.value.pageCount
-        if (pageIndex !in 0 until pageCount) return
-
-        renderJob?.cancel()
-        renderJob = viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
-
-            runCatching { renderEngine.renderPage(pageIndex) }
-                .onSuccess { bitmap ->
-                    _state.update {
-                        it.copy(
-                            currentPage = pageIndex,
-                            currentPageImage = bitmap,
-                            isLoading = false,
-                            errorMessage = if (bitmap == null) "Falha ao renderizar página" else null
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    _state.update {
-                        it.copy(isLoading = false, errorMessage = e.message ?: "Erro ao renderizar página")
+            _state.map { Pair(it.secoes, it.currentReport) }
+                .distinctUntilChanged()
+                .debounce(750L.milliseconds)
+                .collect { (sections, reportData) ->
+                    if (reportData != null) {
+                        generatePreview(sections, reportData)
                     }
                 }
         }
@@ -101,9 +69,6 @@ class ReportCreatorViewModel(
                         pdfName = intent.name,
                         secaoAtivaId = it.secoes.first().id,
                     )
-                }
-                if (intent.path.isNotBlank()) {
-                    loadPdf(intent.path)
                 }
             }
 
@@ -122,20 +87,6 @@ class ReportCreatorViewModel(
 
             is ReportCreatorIntent.OnTabChange -> {
                 _state.update { it.copy(abaDireitaAtiva = intent.tab) }
-            }
-
-            ReportCreatorIntent.OnNextPage -> {
-                val currentState = _state.value
-                if (currentState.currentPage < currentState.pageCount - 1) {
-                    renderPage(currentState.currentPage + 1)
-                }
-            }
-
-            ReportCreatorIntent.OnPreviousPage -> {
-                val currentState = _state.value
-                if (currentState.currentPage > 0) {
-                    renderPage(currentState.currentPage - 1)
-                }
             }
 
             is ReportCreatorIntent.OnZoomChange -> {
@@ -251,9 +202,42 @@ class ReportCreatorViewModel(
         }
     }
 
+    private fun generatePreview(
+        secoes: List<ReportSection>,
+        reportData: ReportData,
+    ) {
+        previewJob?.cancel()
+        previewJob = viewModelScope.launch {
+            _state.update { it.copy(isGeneratingPreview = true) }
+            try {
+                val bytes = pdfGenerator.generatePreviewPdfBytes(
+                    reportData = reportData,
+                    secoes = secoes,
+                    renderEngine = renderEngine
+                )
+                _state.update {
+                    it.copy(
+                        previewPdfBytes = bytes,
+                        isGeneratingPreview = false
+                    )
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                e.printStackTrace()
+                _state.update {
+                    it.copy(
+                        errorMessage = e.message ?: "Erro ao gerar PDF",
+                        isGeneratingPreview = false
+                    )
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         renderJob?.cancel()
         generatePdfJob?.cancel()
+        previewJob?.cancel()
         renderEngine.close()
         super.onCleared()
     }

@@ -21,6 +21,7 @@ object ReportHtmlTemplate {
         secoes: List<ReportSection>,
         originalPdfPath: String,
         renderEngine: PdfRenderEngine,
+        isPreview: Boolean = false,
     ): String {
         val template = loadTemplate()
         val titulo = secoes.filterIsInstance<ReportSection.Introducao>()
@@ -30,7 +31,8 @@ object ReportHtmlTemplate {
             reportData = reportData,
             secoes = secoes,
             originalPdfPath = originalPdfPath,
-            renderEngine = renderEngine
+            renderEngine = renderEngine,
+            isPreview = isPreview
         )
 
         val cssDataUri = ResourceUtils.getResourceAsBase64("files/template/report_style.css", "text/css")
@@ -45,12 +47,12 @@ object ReportHtmlTemplate {
             .replace("{{CONTEUDO_SECOES}}", htmlSecoes)
     }
 
-
     private suspend fun buildSectionsHtml(
         reportData: ReportData,
         secoes: List<ReportSection>,
         originalPdfPath: String,
         renderEngine: PdfRenderEngine,
+        isPreview: Boolean,
     ): String {
         val sb = StringBuilder()
 
@@ -158,26 +160,40 @@ object ReportHtmlTemplate {
             }
         }
         val templateAnexoOrigem = ResourceUtils.getResourceAsString("files/template/sections/anexo_original.html")
-        val totalPaginas = renderEngine.loadPdf(originalPdfPath)
         val paginas = StringBuilder()
 
-        for (p in 0 until totalPaginas) {
-            val base64Image = renderEngine.renderPageAsBase64(p) ?: continue
-            val numeroPag = p + 1
+        if (isPreview) {
             paginas.append(
                 """
-                <div class="anexo-origem-page">
-                    <img src="$base64Image" class="anexo-origem-img" alt="Relatorio de Origem Pagina $numeroPag"/>
-                    <div class="observacoes-introducao">
-                    Relatório de origem - ZEISS CALYPSO, página $numeroPag de $totalPaginas.
+                <div class="anexo-origem-page" style="padding: 40px; border: 2px dashed #b0c4de; background-color: #f9fbfd; margin-top: 20px;">
+                    <p style="font-weight: bold; color: #005A9C;">[Pré-visualização] Anexo do Relatório de Origem</p>
+                    <p style="color: #666; font-size: 9pt;">As páginas renderizadas do PDF original serão anexadas aqui no relatório final emitido.</p>
                 </div>
-                </div>
-            """.trimIndent()
+                """.trimIndent()
             )
+        } else {
+            if (originalPdfPath.isNotBlank()) {
+                val totalPaginas = renderEngine.loadPdf(originalPdfPath)
+                for (p in 0 until totalPaginas) {
+                    val base64Image = renderEngine.renderPageAsBase64(p) ?: continue
+                    val numeroPag = p + 1
+                    paginas.append(
+                        """
+                        <div class="anexo-origem-page">
+                            <img src="$base64Image" class="anexo-origem-img" alt="Relatorio de Origem Pagina $numeroPag"/>
+                            <div class="observacoes-introducao">
+                            Relatório de origem - ZEISS CALYPSO, página $numeroPag de $totalPaginas.
+                        </div>
+                        </div>
+                    """.trimIndent()
+                    )
+                }
+            }
         }
-        sb.append(templateAnexoOrigem
-            .replace("{{ANEXO_INDICE}}", secoes.size.toString())
-            .replace("{{PAGINAS_ORIGEM}}", paginas.toString())
+        sb.append(
+            templateAnexoOrigem
+                .replace("{{ANEXO_INDICE}}", secoes.size.toString())
+                .replace("{{PAGINAS_ORIGEM}}", paginas.toString())
         )
 
         return sb.toString()
