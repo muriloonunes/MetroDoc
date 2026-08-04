@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -195,34 +194,22 @@ fun ReportCreatorScreen(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer {
-                                        val isVisible = state.abaDireitaAtiva == RightPanelTab.PREVIEW
-                                        alpha = if (isVisible) 1f else 0f
-                                    }
-                            ) {
-                                PdfPreviewer(
-                                    previewData = state.previewPdfBytes,
-                                    isGenerating = state.isGeneratingPreview
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer {
-                                        val isVisible = state.abaDireitaAtiva == RightPanelTab.PDF_ORIGINAL
-                                        alpha = if (isVisible) 1f else 0f
-                                    }
-                            ) {
-                                PDFViewer(
-                                    pdfPath = state.pdfPath,
-                                    cachedBytes = state.pdf[state.pdfPath],
-                                    onBytesLoaded = { path, bytes ->
-                                        onIntent(ReportCreatorIntent.OnPdfLoaded(path, bytes))
-                                    }
-                                )
+                            when (state.abaDireitaAtiva) {
+                                RightPanelTab.PREVIEW -> {
+                                    PdfPreviewer(
+                                        previewData = state.previewPdfBytes,
+                                        isGenerating = state.isGeneratingPreview
+                                    )
+                                }
+                                RightPanelTab.PDF_ORIGINAL -> {
+                                    PDFViewer(
+                                        pdfPath = state.pdfPath,
+                                        cachedBytes = state.pdf[state.pdfPath],
+                                        onBytesLoaded = { path, bytes ->
+                                            onIntent(ReportCreatorIntent.OnPdfLoaded(path, bytes))
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
