@@ -253,7 +253,8 @@ class ReportCreatorViewModel(
 
     override fun onCleared() {
         renderJob?.cancel()
-        super.onCleared()
+        generatePdfJob?.cancel()
         renderEngine.close()
+        super.onCleared()
     }
 }
