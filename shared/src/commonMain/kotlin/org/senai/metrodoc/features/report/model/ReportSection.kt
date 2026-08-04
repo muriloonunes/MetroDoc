@@ -19,6 +19,8 @@ interface ReportSection {
             SubTexto.EscopoAnalise(),
             SubTexto.ReferenciaMedicao()
         ),
+        val imagePath: String = "",
+        val imagemLegenda: String = "",
         val observacoes: String = "",
     ) : ReportSection {
         sealed interface SubTexto {

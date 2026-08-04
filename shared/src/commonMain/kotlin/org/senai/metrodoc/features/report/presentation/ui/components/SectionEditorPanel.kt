@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,7 +15,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.launch
+import metrodoc.shared.generated.resources.Res
+import metrodoc.shared.generated.resources.close
+import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
@@ -90,54 +97,114 @@ fun IntroducaoSectionEditor(
     onDataChanged: (ReportSection.Introducao) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        MetroDocTextField(
-            label = "Título do Relatório",
-            value = introducao.relatorioTitulo,
-            placeholder = "Ex: Análise Dimensional e Tomográfica",
-            onValueChange = { onDataChanged(introducao.copy(relatorioTitulo = it)) },
-            modifier = Modifier.fillMaxWidth()
-        )
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-            modifier = Modifier.padding(vertical = 2.dp)
-        )
-        introducao.textos.forEachIndexed { index, texto ->
+    val scrollState = rememberScrollState()
+    val imageLauncher = rememberFilePickerLauncher(
+        type = FileKitType.Image
+    ) { file ->
+        file?.let {
+            onDataChanged(introducao.copy(imagePath = it.path))
+        }
+    }
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(end = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             MetroDocTextField(
-                label = texto.titulo,
-                value = texto.texto,
-                singleLine = false,
-                minLines = 3,
-                onValueChange = { novoTexto ->
-                    val listaAtualizada = introducao.textos.toMutableList()
-                    val itemAtualizado = when (texto) {
-                        is ReportSection.Introducao.SubTexto.Objetivo -> texto.copy(texto = novoTexto)
-                        is ReportSection.Introducao.SubTexto.EscopoAnalise -> texto.copy(texto = novoTexto)
-                        is ReportSection.Introducao.SubTexto.ReferenciaMedicao -> texto.copy(texto = novoTexto)
-                        is ReportSection.Introducao.SubTexto.Customizado -> texto.copy(texto = novoTexto)
+                label = "Título do Relatório",
+                value = introducao.relatorioTitulo,
+                placeholder = "Ex: Análise Dimensional e Tomográfica",
+                onValueChange = { onDataChanged(introducao.copy(relatorioTitulo = it)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+            introducao.textos.forEachIndexed { index, texto ->
+                MetroDocTextField(
+                    label = texto.titulo,
+                    value = texto.texto,
+                    singleLine = false,
+                    minLines = 3,
+                    onValueChange = { novoTexto ->
+                        val listaAtualizada = introducao.textos.toMutableList()
+                        val itemAtualizado = when (texto) {
+                            is ReportSection.Introducao.SubTexto.Objetivo -> texto.copy(texto = novoTexto)
+                            is ReportSection.Introducao.SubTexto.EscopoAnalise -> texto.copy(texto = novoTexto)
+                            is ReportSection.Introducao.SubTexto.ReferenciaMedicao -> texto.copy(texto = novoTexto)
+                            is ReportSection.Introducao.SubTexto.Customizado -> texto.copy(texto = novoTexto)
+                        }
+                        listaAtualizada[index] = itemAtualizado
+                        onDataChanged(introducao.copy(textos = listaAtualizada))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+            Text(
+                text = "Foto do Componente",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MetroDocAddButton(
+                    onClick = { imageLauncher.launch() },
+                    text = if (introducao.imagePath.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                )
+                if (introducao.imagePath.isNotBlank()) {
+                    MetroDocOutlinedButton(
+                        onClick = { onDataChanged(introducao.copy(imagePath = "")) },
+                        modifier = Modifier
+                            .wrapContentWidth()
+                            .fillMaxHeight()
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.close),
+                            contentDescription = "Remover Imagem",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
                     }
-                    listaAtualizada[index] = itemAtualizado
-                    onDataChanged(introducao.copy(textos = listaAtualizada))
-                },
+                }
+            }
+            MetroDocTextField(
+                label = "Legenda da Imagem",
+                placeholder = "Imagem em medição na MMC",
+                value = introducao.imagemLegenda,
+                enabled = introducao.imagePath.isNotBlank(),
+                isRequired = introducao.imagePath.isNotBlank(),
+                onValueChange = { onDataChanged(introducao.copy(imagemLegenda = it)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+            MetroDocTextField(
+                label = "Notas / Observações",
+                value = introducao.observacoes,
+                minLines = 2,
+                isRequired = false,
+                onValueChange = { onDataChanged(introducao.copy(observacoes = it)) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-            modifier = Modifier.padding(vertical = 2.dp)
-        )
-        MetroDocTextField(
-            label = "Notas / Observações",
-            value = introducao.observacoes,
-            minLines = 2,
-            isRequired = false,
-            onValueChange = { onDataChanged(introducao.copy(observacoes = it)) },
-            modifier = Modifier.fillMaxWidth()
+        VerticalScrollbar(
+            adapter = rememberScrollbarAdapter(scrollState),
+            style = metroDocDefaultScrollbarStyle(),
+            modifier = Modifier.align(Alignment.CenterEnd),
         )
     }
 }

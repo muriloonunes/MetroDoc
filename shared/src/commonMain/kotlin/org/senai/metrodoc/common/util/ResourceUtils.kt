@@ -1,6 +1,7 @@
 package org.senai.metrodoc.common.util
 
 import metrodoc.shared.generated.resources.Res
+import java.io.File
 import java.util.*
 
 object ResourceUtils {
@@ -15,5 +16,12 @@ object ResourceUtils {
 
     suspend fun getResourceAsString(resourcePath: String): String {
         return Res.readBytes(resourcePath).decodeToString().replace("\uFEFF", "").trim()
+    }
+
+    fun localFileToBase64(path: String, mimeType: String = "image/png"): String {
+        val file = File(path)
+        if (!file.exists()) return ""
+        val bytes = file.readBytes()
+        return "data:$mimeType;base64," + Base64.getEncoder().encodeToString(bytes)
     }
 }

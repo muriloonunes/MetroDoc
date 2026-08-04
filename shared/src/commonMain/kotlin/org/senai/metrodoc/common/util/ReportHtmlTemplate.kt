@@ -73,16 +73,16 @@ object ReportHtmlTemplate {
                             .replace("{{SUB_TEXTO}}", it.texto.toHtmlText())
                     }
 
-                    val img: String? = null
-                    val legendaImagem = "Peça avaliada em processo de medição na MMC"
-                    val primeiraLinhaHtml = if (!img.isNullOrBlank()) {
+                    val imgBase64 = if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
+                    val legendaImagem = secao.imagemLegenda.toHtmlText()
+                    val primeiraLinhaHtml = if (!imgBase64.isNullOrBlank()) {
                         """
                             <td colspan="2" style="width: 50%;">
                                 $subTextosHtml
                             </td>
-                            <td colspan="2" style="width: 50%;" class="image-container-cell">
-                                <img src="$img" class="intro-img" alt="Foto do Componente"/>
-                                <div class="img-caption">$legendaImagem</div>
+                            <td colspan="2" style="width: 50%; text-align: center; vertical-align: middle;" class="image-container-cell">
+                                <img src="$imgBase64" class="intro-img" alt="Foto do Componente"/>
+                                <div class="img-caption" style="text-align: center; margin-top: 6px;">$legendaImagem</div>
                             </td>
                         """.trimIndent()
                     } else {
