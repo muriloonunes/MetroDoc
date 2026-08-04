@@ -11,22 +11,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
+import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 import org.senai.metrodoc.features.report.presentation.ReportCreatorState
-import org.senai.metrodoc.features.report.presentation.ui.components.ConfirmBackDialog
-import org.senai.metrodoc.features.report.presentation.ui.components.SectionEditorPanel
-import org.senai.metrodoc.features.report.presentation.ui.components.SectionSidebar
-import org.senai.metrodoc.features.report.presentation.ui.components.TopToolbar
+import org.senai.metrodoc.features.report.presentation.ui.components.*
 import java.awt.Cursor
 
 enum class RightPanelTab {
@@ -46,13 +46,18 @@ fun ReportCreatorScreen(
     val saverLauncher = rememberFileSaverLauncher(
         dialogSettings = FileKitDialogSettings.createDefault()
     ) { file ->
-        val bytes = pdfBytesToSave
-        if (file != null && bytes != null) {
-            scope.launch {
-                file.write(bytes)
+        if (file != null) {
+            val bytes = pdfBytesToSave
+            if (bytes != null) {
+                scope.launch {
+                    file.write(bytes)
+                }
+            } else {
+                onIntent(ReportCreatorIntent.OnGeneratePdf(file.path))
             }
         }
     }
+
     LaunchedEffect(Unit) {
         effect.collect { effect ->
             when (effect) {
@@ -62,11 +67,6 @@ fun ReportCreatorScreen(
 
                 is ReportCreatorEffect.OnPdfGenerated -> {
                     pdfBytesToSave = effect.bytes
-                    saverLauncher.launch(
-                        suggestedName = "${state.pdfName}.pdf",
-                        defaultExtension = "pdf",
-                        allowedExtensions = setOf("pdf")
-                    )
                 }
             }
         }
@@ -86,16 +86,33 @@ fun ReportCreatorScreen(
         )
     }
 
+    if (state.isGeneratingPdf) {
+        MetroDocLoadingDialog(
+            loadingMessage = "Gerando PDF",
+            isCancelable = true,
+            onCancelLoading = {
+                onIntent(ReportCreatorIntent.OnCancelGeneration)
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
+            .onPreviewKeyEvent { keyEvent ->
+                keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape
+            }
     ) {
         TopToolbar(
             title = "Relatório ${state.currentReport?.cliente ?: "Sem Cliente"} — ${state.pdfName}",
             onBackClick = { onIntent(ReportCreatorIntent.OnBackClicked) },
             onEmitReportClick = {
-                onIntent(ReportCreatorIntent.OnGeneratePdf)
+                saverLauncher.launch(
+                    suggestedName = "${state.pdfName}_Relatorio.pdf",
+                    defaultExtension = "pdf",
+                    allowedExtensions = setOf("pdf")
+                )
             }
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -180,7 +197,7 @@ fun ReportCreatorScreen(
                                         alpha = if (isVisible) 1f else 0f
                                     }
                             ) {
-                                Text("Visualização em Tempo Real")
+                                PdfPreviewer()
                             }
                             Box(
                                 modifier = Modifier

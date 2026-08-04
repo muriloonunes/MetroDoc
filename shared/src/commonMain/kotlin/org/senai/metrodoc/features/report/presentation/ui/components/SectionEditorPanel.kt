@@ -66,6 +66,13 @@ fun SectionEditorPanel(
                     onAddMeasurement = { onIntent(ReportCreatorIntent.OnAddMeasurement(section.id)) }
                 )
             }
+
+            is ReportSection.Conclusao -> {
+                ConclusaoSectionEditor(
+                    section = section,
+                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
+                )
+            }
         }
     }
 }
@@ -113,6 +120,18 @@ fun IntroducaoSectionEditor(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            modifier = Modifier.padding(vertical = 2.dp)
+        )
+        MetroDocTextField(
+            label = "Notas / Observações",
+            value = introducao.observacoes,
+            minLines = 2,
+            isRequired = false,
+            onValueChange = { onDataChanged(introducao.copy(observacoes = it)) },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -231,8 +250,33 @@ fun ResultadosDimensionaisSectionEditor(
                     "registrada acima do limite superior cadastrado.",
             singleLine = false,
             minLines = 3,
+            isRequired = false,
             onValueChange = { novoResumo ->
                 onDataChanged(section.copy(resumoDimensional = novoResumo))
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun ConclusaoSectionEditor(
+    section: ReportSection.Conclusao,
+    modifier: Modifier = Modifier,
+    onDataChanged: (ReportSection.Conclusao) -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        MetroDocTextField(
+            label = "Conclusão",
+            value = section.conclusao,
+            singleLine = false,
+            minLines = 4,
+            onValueChange = {
+                onDataChanged(section.copy(conclusao = it))
             },
             modifier = Modifier.fillMaxWidth()
         )

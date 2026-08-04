@@ -20,6 +20,7 @@ data class ReportCreatorState(
     val secoes: List<ReportSection> = emptyList(),
     val showBackDialog: Boolean = false,
     val secaoAtivaId: String? = null,
+    val isGeneratingPdf: Boolean = false,
 )
 
 sealed interface ReportCreatorIntent {
@@ -62,7 +63,8 @@ sealed interface ReportCreatorIntent {
 
     data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent
 
-    data object OnGeneratePdf : ReportCreatorIntent
+    data class OnGeneratePdf(val destinationPath: String) : ReportCreatorIntent
+    data object OnCancelGeneration : ReportCreatorIntent
 }
 
 sealed interface ReportCreatorEffect {

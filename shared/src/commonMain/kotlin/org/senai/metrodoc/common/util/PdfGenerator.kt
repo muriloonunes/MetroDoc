@@ -5,17 +5,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
+import org.senai.metrodoc.features.report.util.PdfRenderEngine
 import java.io.ByteArrayOutputStream
 
 class PdfGenerator {
     suspend fun generatePdfBytes(
         reportData: ReportData,
-        secoes: List<ReportSection>
+        secoes: List<ReportSection>,
+        originalPdfPath: String,
+        renderEngine: PdfRenderEngine,
     ): ByteArray = withContext(Dispatchers.IO) {
-        val html = ReportHtmlTemplate.generateHtml(reportData, secoes)
+        val html = ReportHtmlTemplate.generateHtml(reportData, secoes, originalPdfPath, renderEngine)
         val os = ByteArrayOutputStream()
         val builder = PdfRendererBuilder()
-        builder.useFastMode()
+
         builder.withHtmlContent(html, null)
         builder.toStream(os)
         builder.run()

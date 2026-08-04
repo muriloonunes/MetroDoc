@@ -110,7 +110,7 @@ private fun SectionSidebarTile(
             )
 
             Row {
-                if (index > 1 && section.titulo != "Introdução") {
+                if (index > 1 && section.movivel) {
                     IconButton(
                         onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index - 1)) },
                         modifier = Modifier.size(40.dp)
@@ -121,7 +121,7 @@ private fun SectionSidebarTile(
                         )
                     }
                 }
-                if (section.titulo != "Introdução" && index < totalCount - 1) {
+                if (section.movivel && index < totalCount - 1) {
                     IconButton(
                         onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index + 1)) },
                         modifier = Modifier.size(40.dp)
@@ -132,7 +132,7 @@ private fun SectionSidebarTile(
                         )
                     }
                 }
-                if (section.titulo != "Introdução") {
+                if (section.removivel) {
                     IconButton(
                         onClick = { onIntent(ReportCreatorIntent.OnRemoveSection(section.id)) },
                         modifier = Modifier.size(40.dp)

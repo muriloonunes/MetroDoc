@@ -2,6 +2,7 @@ package org.senai.metrodoc.features.report.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,13 +29,15 @@ class ReportCreatorViewModel(
     val effect = _effect.receiveAsFlow()
 
     private var renderJob: Job? = null
+    private var generatePdfJob: Job? = null
 
     init {
         val currentReport = reportRepository.currentReport.value
         val initialSections = listOf(
             ReportSection.Introducao(),
             ReportSection.Identificacao(reportData = currentReport ?: ReportData()),
-            ReportSection.ResultadosDimensionais(measurements = currentReport?.caracteristicas ?: emptyList())
+            ReportSection.ResultadosDimensionais(measurements = currentReport?.caracteristicas ?: emptyList()),
+            ReportSection.Conclusao(),
         )
 
         _state.update {
@@ -205,21 +208,39 @@ class ReportCreatorViewModel(
                 _state.update { it.copy(currentReport = intent.updatedData) }
             }
 
-            ReportCreatorIntent.OnGeneratePdf -> {
+            is ReportCreatorIntent.OnGeneratePdf -> {
                 val reportData = _state.value.currentReport ?: return
                 val secoes = _state.value.secoes
-                viewModelScope.launch {
+                val pdfPath = _state.value.pdfPath
+
+                generatePdfJob?.cancel()
+
+                generatePdfJob = viewModelScope.launch {
+                    _state.update { it.copy(isGeneratingPdf = true) }
                     try {
                         val bytes = pdfGenerator.generatePdfBytes(
                             reportData = reportData,
-                            secoes = secoes
+                            secoes = secoes,
+                            originalPdfPath = pdfPath,
+                            renderEngine = renderEngine
                         )
                         sendEffect(ReportCreatorEffect.OnPdfGenerated(bytes))
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         e.printStackTrace()
                         _state.update { it.copy(errorMessage = e.message ?: "Erro ao gerar PDF") }
+                    } finally {
+                        _state.update {
+                            it.copy(isGeneratingPdf = false)
+                        }
                     }
                 }
+            }
+
+            ReportCreatorIntent.OnCancelGeneration -> {
+                generatePdfJob?.cancel()
+                generatePdfJob = null
+                _state.update { it.copy(isGeneratingPdf = false) }
             }
         }
     }

@@ -1,0 +1,30 @@
+<div class="main-title">RELATÓRIO TÉCNICO - {{RELATORIO_TITULO}}</div>
+<div class="component-name">{{COMPONENTE_NOME}}</div>
+
+<table class="grid-table bg-light-blue">
+    <tr>
+        {{CONTEUDO_PRIMEIRA_LINHA}}
+    </tr>
+    <tr>
+        <td style="width: 25%;">
+            <div class="metric-label">AMOSTRA</div>
+            <div class="metric-value">1 peça</div>
+        </td>
+        <td style="width: 25%;">
+            <div class="metric-label">VALORES AVALIADOS</div>
+            <div class="metric-value">{{QTD_VALORES}}</div>
+        </td>
+        <td style="width: 25%;">
+            <div class="metric-label">FORA DOS LIMITES</div>
+            <div class="metric-value">{{QTD_FORA}}</div>
+        </td>
+        <td style="width: 25%;">
+            <div class="metric-label">MMC</div>
+            <div class="metric-value">{{NOME_MMC}}</div>
+        </td>
+    </tr>
+</table>
+<div class="observacoes-introducao">
+    {{OBSERVACOES}}
+</div>
+<div style="page-break-after: always"></div>

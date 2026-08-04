@@ -5,6 +5,7 @@
     @top-center {
         content: element(header);
     }
+
     @bottom-center {
         content: element(footer);
     }
@@ -18,23 +19,31 @@ body {
     padding: 0;
 }
 
+.page-break {
+    page-break-before: always;
+}
+
 div.header {
     position: running(header);
     width: 100%;
     border-bottom: 2px solid #005696;
-    padding-bottom: 8px;
+    padding-bottom: 2px;
 }
+
 .header-table {
     width: 100%;
     border-collapse: collapse;
 }
+
 .header-title {
     text-align: center;
     font-weight: bold;
     font-size: 11pt;
     color: #1c1b1b;
 }
+
 .logo-img {
+    height: 35px;
     max-height: 35px;
     width: auto;
 }
@@ -47,10 +56,12 @@ div.footer {
     font-size: 8pt;
     color: #747878;
 }
+
 .footer-table {
     width: 100%;
     border-collapse: collapse;
 }
+
 .page-number:before {
     content: "Página " counter(page) " de " counter(pages);
 }
@@ -58,10 +69,10 @@ div.footer {
 .main-title {
     font-size: 12pt;
     font-weight: bold;
-    margin-top: 10px;
+    margin-top: 5px;
     margin-bottom: 5px;
-    text-transform: uppercase;
 }
+
 .component-name {
     font-size: 20pt;
     font-weight: bold;
@@ -74,11 +85,14 @@ div.footer {
     border-collapse: collapse;
     margin-bottom: 15px;
 }
-.grid-table td, .grid-table th {
+
+.grid-table td,
+.grid-table th {
     border: 1px solid #b0c4de;
     padding: 10px;
     vertical-align: top;
 }
+
 .bg-light-blue {
     background-color: #f0f4f8;
 }
@@ -91,11 +105,34 @@ div.footer {
     margin-top: 8px;
     margin-bottom: 4px;
 }
+
 .section-content {
     font-size: 9.5pt;
     color: #444444;
     margin-bottom: 10px;
     line-height: 1.3;
+}
+
+.image-container-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.intro-img {
+    max-width: 100%;
+    max-height: 220px;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+.img-caption {
+    font-size: 8pt;
+    font-style: italic;
+    color: #555555;
+    margin-top: 6px;
+    text-align: center;
 }
 
 .metric-label {
@@ -104,9 +141,108 @@ div.footer {
     text-transform: uppercase;
     color: #555555;
 }
+
 .metric-value {
     font-size: 14pt;
     font-weight: bold;
     color: #000000;
     margin-top: 4px;
+}
+
+.observacoes-introducao {
+    font-size: 9pt;
+    font-style: italic;
+    color: #666666;
+    margin-top: 10px;
+}
+
+.section-title {
+    color: #005A9C;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.info-table td {
+    border: 1px solid #b8c9d6;
+    padding: 8px 12px;
+    vertical-align: middle;
+    font-size: 9.5pt;
+}
+
+.info-table .info-label {
+    background-color: #D8EAF4;
+    font-weight: bold;
+    color: #1c1b1b;
+    width: 45%;
+}
+
+.info-table .info-value {
+    background-color: #ffffff;
+    font-weight: normal;
+    color: #1c1b1b;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    margin-bottom: 15px;
+    font-size: 9.5pt;
+}
+
+.results-table th {
+    background-color: #005A9C;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+    padding: 7px 10px;
+    border: 1px solid #ffffff;
+}
+
+.results-table td {
+    border: 1px solid #b8d4e8;
+    padding: 6px 10px;
+    text-align: center;
+    color: #1c1b1b;
+    vertical-align: middle;
+}
+
+.status-dentro {
+    color: #198754;
+    font-weight: bold;
+}
+
+.status-fora {
+    color: #C00000;
+    font-weight: bold;
+}
+
+.assinatura-linha {
+    width: 300px;
+    border-bottom: 1px solid #000;
+    margin-top: 30px;
+    height: 40px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.anexo-origem-page {
+    text-align: center;
+    margin-top: 15px;
+    margin-bottom: 25px;
+    page-break-inside: avoid;
+}
+
+.anexo-origem-img {
+    display: block;
+    margin: 0 auto;
+    max-width: 95%;
+    max-height: 18cm;
+    border: 1px solid #d0d0d0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
