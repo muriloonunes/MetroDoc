@@ -2,6 +2,9 @@ package org.senai.metrodoc.features.report.presentation.ui.components
 
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +21,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -76,6 +81,7 @@ fun SectionSidebar(
                             onFocusRoot()
                         },
                         onIntent = onIntent,
+                        onFocusRoot = onFocusRoot,
                         modifier = Modifier.animateItem()
                     )
                 }
@@ -84,7 +90,7 @@ fun SectionSidebar(
                     item(key = "inline_add_section_tile") {
                         AddSectionInlineTile(
                             title = newSectionTitle,
-                            onTitleChange = { newSectionTitle = it },
+                            onTitleChange = { newSectionTitle = it.text },
                             onConfirm = {
                                 val trimmed = newSectionTitle.trim()
                                 if (trimmed.isNotEmpty()) {
@@ -125,11 +131,12 @@ fun SectionSidebar(
 }
 
 @Composable
-private fun AddSectionInlineTile(
-    title: String,
-    onTitleChange: (String) -> Unit,
+private fun SectionInlineEditorTile(
+    title: TextFieldValue,
+    onTitleChange: (TextFieldValue) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
+    placeholderText: String = "Nome da seção",
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -155,9 +162,9 @@ private fun AddSectionInlineTile(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.CenterStart
             ) {
-                if (title.isEmpty()) {
+                if (title.text.isEmpty()) {
                     Text(
-                        text = "Nome da nova seção",
+                        text = placeholderText,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
                     )
@@ -180,10 +187,12 @@ private fun AddSectionInlineTile(
                                         onConfirm()
                                         true
                                     }
+
                                     Key.Escape -> {
                                         onCancel()
                                         true
                                     }
+
                                     else -> false
                                 }
                             } else false
@@ -216,6 +225,24 @@ private fun AddSectionInlineTile(
 }
 
 @Composable
+private fun AddSectionInlineTile(
+    title: String,
+    onTitleChange: (TextFieldValue) -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SectionInlineEditorTile(
+        title = TextFieldValue(title),
+        onTitleChange = onTitleChange,
+        onConfirm = onConfirm,
+        onCancel = onCancel,
+        placeholderText = "Nome da nova seção",
+        modifier = modifier
+    )
+}
+
+@Composable
 private fun SectionSidebarTile(
     section: ReportSection,
     index: Int,
@@ -223,61 +250,109 @@ private fun SectionSidebarTile(
     isSelected: Boolean,
     onSelect: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
+    onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .clickable { onSelect() }
-            .heightIn(min = 50.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = section.titulo,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f)
-            )
+    var isEditing by remember(section.id) { mutableStateOf(false) }
+    var editedTitle by remember(section.id, section.titulo) {
+        mutableStateOf(TextFieldValue(section.titulo))
+    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
 
-            Row {
-                if (index > 1 && section.movivel) {
-                    IconButton(
-                        onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index - 1)) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.up),
-                            contentDescription = "Subir",
-                        )
-                    }
+    if (isEditing && section is ReportSection.Customizada) {
+        SectionInlineEditorTile(
+            title = editedTitle,
+            onTitleChange = { editedTitle = it },
+            onConfirm = {
+                val trimmed = editedTitle.text.trim()
+                if (trimmed.isNotEmpty()) {
+                    onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = trimmed)))
                 }
-                if (section.movivel && index < totalCount - 1) {
-                    IconButton(
-                        onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index + 1)) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.down),
-                            contentDescription = "Descer",
-                        )
+                isEditing = false
+                onFocusRoot()
+            },
+            onCancel = {
+                isEditing = false
+                onFocusRoot()
+            },
+            placeholderText = "Nome da seção",
+            modifier = modifier
+        )
+    } else {
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .clickable { onSelect() }
+                .hoverable(interactionSource)
+                .heightIn(min = 50.dp),
+            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = section.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Row {
+                    if (section is ReportSection.Customizada && isHovered) {
+                        IconButton(
+                            onClick = {
+                                onSelect()
+                                editedTitle = TextFieldValue(
+                                    text = section.titulo,
+                                    selection = TextRange(section.titulo.length)
+                                )
+                                isEditing = true
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.edit),
+                                contentDescription = "Editar título",
+                            )
+                        }
                     }
-                }
-                if (section.removivel) {
-                    IconButton(
-                        onClick = { onIntent(ReportCreatorIntent.OnRemoveSection(section.id)) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.remove),
-                            contentDescription = "Remover",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                    if (index > 1 && section.movivel) {
+                        IconButton(
+                            onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index - 1)) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.up),
+                                contentDescription = "Subir",
+                            )
+                        }
+                    }
+                    if (section.movivel && index < totalCount - 1) {
+                        IconButton(
+                            onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index + 1)) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.down),
+                                contentDescription = "Descer",
+                            )
+                        }
+                    }
+                    if (section.removivel) {
+                        IconButton(
+                            onClick = { onIntent(ReportCreatorIntent.OnRemoveSection(section.id)) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.remove),
+                                contentDescription = "Remover",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
