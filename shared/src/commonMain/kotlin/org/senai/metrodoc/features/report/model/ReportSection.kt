@@ -88,6 +88,14 @@ interface ReportSection {
         val topicos: String = "",
     ) : ReportSection
 
+    data class Customizada(
+        override val id: String = UUID.randomUUID().toString(),
+        override val titulo: String = "",
+        override val removivel: Boolean = true,
+        override val movivel: Boolean = true,
+        val blocos: List<ReportBlock> = emptyList(),
+    ) : ReportSection
+
     // 4. Exemplo de Seção Futura: Imagens e Anexos
     data class AnexoFotografico(
         override val id: String = UUID.randomUUID().toString(),

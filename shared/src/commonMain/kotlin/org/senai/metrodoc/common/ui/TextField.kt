@@ -83,7 +83,7 @@ fun MetroDocTextField(
                         .border(
                             width = if (isFocused || isError) 1.5.dp else 1.dp,
                             color = borderColor,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
+                            shape = RoundedCornerShape(6.dp)
                         )
                         .padding(
                             horizontal = 10.dp,

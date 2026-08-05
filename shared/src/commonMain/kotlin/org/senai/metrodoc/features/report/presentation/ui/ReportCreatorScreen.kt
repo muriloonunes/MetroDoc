@@ -1,6 +1,7 @@
 package org.senai.metrodoc.features.report.presentation.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -9,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -42,6 +45,12 @@ fun ReportCreatorScreen(
     onIntent: (ReportCreatorIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val rootFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        rootFocusRequester.requestFocus()
+    }
+
     val scope = rememberCoroutineScope()
     var pdfBytesToSave by remember { mutableStateOf<ByteArray?>(null) }
     val saverLauncher = rememberFileSaverLauncher(
@@ -105,7 +114,9 @@ fun ReportCreatorScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
-            .onPreviewKeyEvent { keyEvent ->
+            .focusRequester(rootFocusRequester)
+            .focusable()
+            .onKeyEvent { keyEvent ->
                 keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape
             }
     ) {
@@ -130,6 +141,7 @@ fun ReportCreatorScreen(
                     selectedId = state.secaoAtivaId,
                     onSelectSection = { onIntent(ReportCreatorIntent.OnSectionChange(it)) },
                     onIntent = onIntent,
+                    onFocusRoot = { rootFocusRequester.requestFocus() },
                     modifier = Modifier.width(sidebarWidth).fillMaxHeight()
                 )
                 ResizingDivider { delta ->

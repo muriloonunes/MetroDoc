@@ -6,12 +6,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -21,6 +18,7 @@ import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.launch
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.close
+import metrodoc.shared.generated.resources.edit
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
@@ -43,11 +41,43 @@ fun SectionEditorPanel(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = section.titulo,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
+        var editarTitulo by remember { mutableStateOf(false) }
+        if (section is ReportSection.Customizada) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextField(
+                    value = section.titulo,
+                    onValueChange = { novoTitulo ->
+                        onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = novoTitulo)))
+                    },
+                    readOnly = !editarTitulo,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = {
+                        editarTitulo = true
+                    },
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.edit),
+                        contentDescription = "Editar Título da Seção",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = section.titulo,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
@@ -87,7 +117,32 @@ fun SectionEditorPanel(
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
                 )
             }
+
+            is ReportSection.Customizada -> {
+                CustomizadaSectionEditor(
+                    section = section,
+                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun CustomizadaSectionEditor(
+    section: ReportSection.Customizada,
+    onDataChanged: (ReportSection.Customizada) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Seção personalizada criada. Adicione conteúdos ou edite as informações necessárias.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

@@ -200,7 +200,7 @@ object ReportHtmlTemplate {
                     sb.append(conclusaoHtml)
                 }
 
-                else -> {
+                is ReportSection.Customizada -> {
 
                 }
             }
