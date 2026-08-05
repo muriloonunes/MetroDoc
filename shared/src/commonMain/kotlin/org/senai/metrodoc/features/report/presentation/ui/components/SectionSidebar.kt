@@ -2,8 +2,6 @@ package org.senai.metrodoc.features.report.presentation.ui.components
 
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -135,8 +133,6 @@ private fun AddSectionInlineTile(
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -174,7 +170,6 @@ private fun AddSectionInlineTile(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
-                    interactionSource = interactionSource,
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
@@ -203,6 +198,16 @@ private fun AddSectionInlineTile(
                 Icon(
                     painter = painterResource(Res.drawable.close),
                     contentDescription = "Cancelar",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                )
+            }
+            IconButton(
+                onClick = onConfirm,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.confirm),
+                    contentDescription = "Confirmar",
                     tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 )
             }

@@ -161,7 +161,8 @@ fun ReportCreatorScreen(
                             SectionEditorPanel(
                                 section = currentSection,
                                 reportData = state.currentReport ?: ReportData(),
-                                onIntent = onIntent
+                                onIntent = onIntent,
+                                onFocusRoot = { rootFocusRequester.requestFocus() }
                             )
                         } else {
                             Text(

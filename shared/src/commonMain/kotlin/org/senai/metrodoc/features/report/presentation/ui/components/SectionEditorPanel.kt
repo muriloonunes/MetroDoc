@@ -6,11 +6,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
@@ -18,6 +22,7 @@ import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.launch
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.close
+import metrodoc.shared.generated.resources.confirm
 import metrodoc.shared.generated.resources.edit
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
@@ -35,40 +40,122 @@ import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.com
 fun SectionEditorPanel(
     section: ReportSection,
     reportData: ReportData,
+    onFocusRoot: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        var editarTitulo by remember { mutableStateOf(false) }
+        var editarTitulo by remember(section.id) { mutableStateOf(false) }
+
         if (section is ReportSection.Customizada) {
+            val focusRequester = remember { FocusRequester() }
+
+            var textFieldValue by remember(section.id, editarTitulo) {
+                mutableStateOf(
+                    TextFieldValue(
+                        text = section.titulo,
+                        selection = TextRange(section.titulo.length)
+                    )
+                )
+            }
+
+            LaunchedEffect(editarTitulo) {
+                if (editarTitulo) {
+                    focusRequester.requestFocus()
+                } else {
+                    onFocusRoot()
+                }
+            }
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BasicTextField(
-                    value = section.titulo,
-                    onValueChange = { novoTitulo ->
-                        onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = novoTitulo)))
-                    },
-                    readOnly = !editarTitulo,
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(
-                    onClick = {
-                        editarTitulo = true
-                    },
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.edit),
-                        contentDescription = "Editar Título da Seção",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                if (editarTitulo) {
+                    MetroDocTextField(
+                        label = "",
+                        value = textFieldValue,
+                        onValueChange = { textFieldValue = it },
+                        singleLine = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 4.dp),
+                        textFieldModifier = Modifier
+                            .focusRequester(focusRequester)
+                            .onPreviewKeyEvent { keyEvent ->
+                                if (keyEvent.type == KeyEventType.KeyDown) {
+                                    when (keyEvent.key) {
+                                        Key.Enter, Key.NumPadEnter -> {
+                                            val trimmed = textFieldValue.text.trim()
+                                            if (trimmed.isNotEmpty()) {
+                                                onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = trimmed)))
+                                            }
+                                            editarTitulo = false
+                                            true
+                                        }
+
+                                        Key.Escape -> {
+                                            editarTitulo = false
+                                            true
+                                        }
+
+                                        else -> false
+                                    }
+                                } else false
+                            }
                     )
+                    IconButton(
+                        onClick = {
+                            editarTitulo = false
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.close),
+                            contentDescription = "Cancelar",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val trimmed = textFieldValue.text.trim()
+                            if (trimmed.isNotEmpty()) {
+                                onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = trimmed)))
+                            }
+                            editarTitulo = false
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.confirm),
+                            contentDescription = "Confirmar",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        )
+                    }
+                } else {
+                    Text(
+                        text = section.titulo,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    IconButton(
+                        onClick = {
+                            editarTitulo = true
+                        },
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.edit),
+                            contentDescription = "Editar Título da Seção",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         } else {

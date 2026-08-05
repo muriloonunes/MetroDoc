@@ -15,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -28,9 +30,38 @@ fun MetroDocTextField(
     singleLine: Boolean = true,
     minLines: Int = 1,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier.Companion,
+    modifier: Modifier = Modifier,
+    textFieldModifier: Modifier = Modifier,
 ) {
-    val isError = isRequired && value.isBlank() && enabled
+    MetroDocTextField(
+        label = label,
+        value = TextFieldValue(text = value, selection = TextRange(value.length)),
+        placeholder = placeholder,
+        isRequired = isRequired,
+        enabled = enabled,
+        singleLine = singleLine,
+        minLines = minLines,
+        onValueChange = { onValueChange(it.text) },
+        modifier = modifier,
+        textFieldModifier = textFieldModifier
+    )
+}
+
+@Composable
+fun MetroDocTextField(
+    label: String,
+    value: TextFieldValue,
+    placeholder: String = "",
+    isRequired: Boolean = true,
+    enabled: Boolean = true,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    onValueChange: (TextFieldValue) -> Unit,
+    modifier: Modifier = Modifier,
+    textFieldModifier: Modifier = Modifier,
+) {
+    val textContent = value.text
+    val isError = isRequired && textContent.isBlank() && enabled
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
@@ -69,8 +100,7 @@ fun MetroDocTextField(
                 ),
             ),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = textFieldModifier.fillMaxWidth(),
             decorationBox = { innerTextField ->
                 Box(
                     modifier = Modifier
@@ -91,13 +121,13 @@ fun MetroDocTextField(
                         ),
                     contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart
                 ) {
-                    if (value.isEmpty() && placeholder.isNotEmpty() && !isFocused) {
+                    if (textContent.isEmpty() && placeholder.isNotEmpty() && !isFocused) {
                         Text(
                             text = placeholder,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         )
-                    } else if (value.isEmpty() && isError && !isFocused) {
+                    } else if (textContent.isEmpty() && isError && !isFocused) {
                         Text(
                             text = "Obrigatório",
                             style = MaterialTheme.typography.bodyMedium,
