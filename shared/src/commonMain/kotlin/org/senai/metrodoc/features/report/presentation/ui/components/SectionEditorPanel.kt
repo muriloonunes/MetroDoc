@@ -179,7 +179,7 @@ fun IntroducaoSectionEditor(
             }
             MetroDocTextField(
                 label = "Legenda da Imagem",
-                placeholder = "Imagem em medição na MMC",
+                placeholder = "Peça em medição na MMC",
                 value = introducao.imagemLegenda,
                 enabled = introducao.imagePath.isNotBlank(),
                 isRequired = introducao.imagePath.isNotBlank(),
@@ -190,16 +190,19 @@ fun IntroducaoSectionEditor(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                 modifier = Modifier.padding(vertical = 2.dp)
             )
-            Text(
-                text = "Informações Extras",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Essas informações são opcionais e serão anexadas no final da tabela",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Informações Extras",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Essas informações são opcionais e serão anexadas no final da tabela",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
             introducao.informacoesExtras.forEachIndexed { index, infoExtra ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -402,7 +405,7 @@ fun ResultadosDimensionaisSectionEditor(
         MetroDocTextField(
             label = "Resumo da Análise Dimensional / Conclusão Técnica",
             value = section.resumoDimensional,
-            placeholder = "Ex: O diâmetro medido apresentou resultado dentro dos limites informados. A cilindricidade foi\n" +
+            placeholder = "Ex: O diâmetro medido apresentou resultado dentro dos limites informados. A cilindricidade foi " +
                     "registrada acima do limite superior cadastrado.",
             singleLine = false,
             minLines = 3,

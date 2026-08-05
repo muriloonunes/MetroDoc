@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import org.senai.metrodoc.common.util.PdfParser
 import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.presentation.ui.PDFViewer
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun PdfPreviewer(
@@ -45,7 +46,7 @@ fun PdfPreviewer(
                         is ReportSection.Identificacao -> 1
                         else -> {
                             while (reader.pageCount == 0) {
-                                delay(50)
+                                delay(50.milliseconds)
                             }
                             PdfParser.getPageFromSearch(
                                 reader = reader,
