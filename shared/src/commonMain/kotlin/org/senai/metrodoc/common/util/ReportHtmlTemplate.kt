@@ -73,7 +73,8 @@ object ReportHtmlTemplate {
                             .replace("{{SUB_TEXTO}}", it.texto.toHtmlText())
                     }
 
-                    val imgBase64 = if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
+                    val imgBase64 =
+                        if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
                     val legendaImagem = secao.imagemLegenda.toHtmlText()
                     val primeiraLinhaHtml = if (!imgBase64.isNullOrBlank()) {
                         """
@@ -93,6 +94,41 @@ object ReportHtmlTemplate {
                         """.trimIndent()
                     }
 
+                    val extras = if (secao.informacoesExtras.isNotEmpty()) {
+                        secao.informacoesExtras
+                            .filter { it.titulo.isNotBlank() || it.texto.isNotBlank() }
+                            .chunked(4)
+                            .joinToString(separator = "\n") { grupo ->
+                                val totalItens = grupo.size
+
+                                val colunasHtml = grupo.mapIndexed { index, item ->
+                                    val colSpan = if (index == totalItens - 1 && totalItens < 4) {
+                                        4 - (totalItens - 1) //se for o ultimo da linha e tiver sobrando, pega o colspan pra fechar 4 colunas
+                                    } else {
+                                        1
+                                    }
+
+                                    val styleWidth = when (totalItens) {
+                                        1 -> "style=\"width: 100%;\""
+                                        2 -> "style=\"width: 50%;\""
+                                        3 -> "style=\"width: 33.3%;\""
+                                        else -> "style=\"width: 25%;\""
+                                    }
+
+                                    """
+                                    <td colspan="$colSpan" $styleWidth>
+                                        <div class="metric-label">${item.titulo.uppercase()}</div>
+                                        <div class="section-content" style="font-size: 10pt; font-weight: bold; color: #1c1b1b; margin-top: 4px; margin-bottom: 0;">
+                                            ${item.texto.toHtmlText()}
+                                        </div>
+                                    </td>
+                                    """.trimIndent()
+                                }.joinToString(separator = "\n")
+
+                                "<tr>\n$colunasHtml\n</tr>"
+                            }
+                    } else ""
+
                     val introducaoHtml = templateIntroducao
                         .replace("{{RELATORIO_TITULO}}", secao.relatorioTitulo)
                         .replace("{{COMPONENTE_NOME}}", reportData.componente.ifEmpty { "Peça sem Nome" })
@@ -104,6 +140,7 @@ object ReportHtmlTemplate {
                             }.toString()
                         )
                         .replace("{{NOME_MMC}}", reportData.maquina)
+                        .replace("{{LINHAS_EXTRAS}}", extras)
                         .replace("{{OBSERVACOES}}", secao.observacoes.toHtmlText())
 
                     sb.append(introducaoHtml)

@@ -107,10 +107,10 @@ fun IntroducaoSectionEditor(
     }
     Box(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(end = 12.dp),
+                .verticalScroll(scrollState)
+                .padding(end = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             MetroDocTextField(
@@ -161,14 +161,13 @@ fun IntroducaoSectionEditor(
                 MetroDocAddButton(
                     onClick = { imageLauncher.launch() },
                     text = if (introducao.imagePath.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
-                    modifier = Modifier.fillMaxWidth().weight(1f)
+                    modifier = Modifier.weight(1f)
                 )
                 if (introducao.imagePath.isNotBlank()) {
                     MetroDocOutlinedButton(
                         onClick = { onDataChanged(introducao.copy(imagePath = "")) },
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .fillMaxHeight()
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(50.dp)
                     ) {
                         Icon(
                             painter = painterResource(Res.drawable.close),
@@ -185,6 +184,86 @@ fun IntroducaoSectionEditor(
                 enabled = introducao.imagePath.isNotBlank(),
                 isRequired = introducao.imagePath.isNotBlank(),
                 onValueChange = { onDataChanged(introducao.copy(imagemLegenda = it)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+            Text(
+                text = "Informações Extras",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Essas informações são opcionais e serão anexadas no final da tabela",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            introducao.informacoesExtras.forEachIndexed { index, infoExtra ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    MetroDocTextField(
+                        label = "Info Extra ${index + 1}:",
+                        value = infoExtra.titulo,
+                        placeholder = "Diâmetro",
+                        onValueChange = { novoTitulo ->
+                            val listaAtualizada = introducao.informacoesExtras.toMutableList()
+                            val itemAtualizado = (infoExtra as? ReportSection.Introducao.SubTexto.Customizado)
+                                ?.copy(titulo = novoTitulo) ?: ReportSection.Introducao.SubTexto.Customizado(
+                                titulo = novoTitulo,
+                                texto = infoExtra.texto
+                            )
+                            listaAtualizada[index] = itemAtualizado
+                            onDataChanged(introducao.copy(informacoesExtras = listaAtualizada))
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetroDocTextField(
+                        label = "Descrição",
+                        value = infoExtra.texto,
+                        placeholder = "Dentro dos limites",
+                        onValueChange = { novoTexto ->
+                            val listaAtualizada = introducao.informacoesExtras.toMutableList()
+                            val itemAtualizado = (infoExtra as? ReportSection.Introducao.SubTexto.Customizado)
+                                ?.copy(texto = novoTexto) ?: ReportSection.Introducao.SubTexto.Customizado(
+                                titulo = infoExtra.titulo,
+                                texto = novoTexto
+                            )
+                            listaAtualizada[index] = itemAtualizado
+                            onDataChanged(introducao.copy(informacoesExtras = listaAtualizada))
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetroDocOutlinedButton(
+                        onClick = {
+                            val listaAtualizada = introducao.informacoesExtras.toMutableList()
+                            listaAtualizada.removeAt(index)
+                            onDataChanged(introducao.copy(informacoesExtras = listaAtualizada))
+                        },
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.close),
+                            contentDescription = "Remover Informação Extra",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+            MetroDocAddButton(
+                onClick = {
+                    onDataChanged(
+                        introducao.copy(
+                            informacoesExtras = introducao.informacoesExtras + ReportSection.Introducao.SubTexto.Customizado()
+                        )
+                    )
+                },
+                text = "Adicionar Informação Extra",
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -204,10 +283,13 @@ fun IntroducaoSectionEditor(
         VerticalScrollbar(
             adapter = rememberScrollbarAdapter(scrollState),
             style = metroDocDefaultScrollbarStyle(),
-            modifier = Modifier.align(Alignment.CenterEnd),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight(),
         )
     }
 }
+
 
 @Composable
 fun ResultadosDimensionaisSectionEditor(
@@ -291,7 +373,7 @@ fun ResultadosDimensionaisSectionEditor(
                     ) {
                         itemsIndexed(
                             items = section.measurements,
-                            key = { index, item -> item.hash }
+                            key = { _, item -> item.hash }
                         ) { index, measurement ->
                             MeasurementTableRow(
                                 measurement = measurement,

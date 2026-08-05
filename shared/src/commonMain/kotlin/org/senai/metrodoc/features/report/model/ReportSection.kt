@@ -19,6 +19,7 @@ interface ReportSection {
             SubTexto.EscopoAnalise(),
             SubTexto.ReferenciaMedicao()
         ),
+        val informacoesExtras: List<SubTexto> = emptyList(),
         val imagePath: String = "",
         val imagemLegenda: String = "",
         val observacoes: String = "",
@@ -48,7 +49,7 @@ interface ReportSection {
 
             data class Customizado(
                 override val id: String = UUID.randomUUID().toString(),
-                override val titulo: String = "Novo Tópico",
+                override val titulo: String = "",
                 override val texto: String = "",
             ) : SubTexto
         }
