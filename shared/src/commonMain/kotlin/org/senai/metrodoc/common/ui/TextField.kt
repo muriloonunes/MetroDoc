@@ -1,5 +1,4 @@
 package org.senai.metrodoc.common.ui
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,45 +22,107 @@ import androidx.compose.ui.unit.sp
 fun MetroDocTextField(
     label: String,
     value: String,
+    onValueChange: (String) -> Unit,
     placeholder: String = "",
     isRequired: Boolean = true,
     enabled: Boolean = true,
     singleLine: Boolean = true,
     minLines: Int = 1,
-    onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier,
 ) {
-    MetroDocTextField(
+    val interactionSource = remember { MutableInteractionSource() }
+
+    MetroDocTextFieldLayout(
         label = label,
-        value = TextFieldValue(text = value, selection = TextRange(value.length)),
+        textIsEmpty = value.isEmpty(),
+        textIsBlank = value.isBlank(),
         placeholder = placeholder,
         isRequired = isRequired,
         enabled = enabled,
         singleLine = singleLine,
         minLines = minLines,
-        onValueChange = { onValueChange(it.text) },
-        modifier = modifier,
-        textFieldModifier = textFieldModifier
-    )
+        interactionSource = interactionSource,
+        modifier = modifier
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            singleLine = singleLine,
+            minLines = minLines,
+            interactionSource = interactionSource,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = textFieldModifier.fillMaxWidth(),
+            decorationBox = { innerTextField -> innerTextField() }
+        )
+    }
 }
 
 @Composable
 fun MetroDocTextField(
     label: String,
     value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     placeholder: String = "",
     isRequired: Boolean = true,
     enabled: Boolean = true,
     singleLine: Boolean = true,
     minLines: Int = 1,
-    onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier,
 ) {
-    val textContent = value.text
-    val isError = isRequired && textContent.isBlank() && enabled
     val interactionSource = remember { MutableInteractionSource() }
+
+    MetroDocTextFieldLayout(
+        label = label,
+        textIsEmpty = value.text.isEmpty(),
+        textIsBlank = value.text.isBlank(),
+        placeholder = placeholder,
+        isRequired = isRequired,
+        enabled = enabled,
+        singleLine = singleLine,
+        minLines = minLines,
+        interactionSource = interactionSource,
+        modifier = modifier
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            singleLine = singleLine,
+            minLines = minLines,
+            interactionSource = interactionSource,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = textFieldModifier.fillMaxWidth(),
+            decorationBox = { innerTextField -> innerTextField() }
+        )
+    }
+}
+
+@Composable
+private fun MetroDocTextFieldLayout(
+    label: String,
+    textIsEmpty: Boolean,
+    textIsBlank: Boolean,
+    placeholder: String,
+    isRequired: Boolean,
+    enabled: Boolean,
+    singleLine: Boolean,
+    minLines: Int,
+    interactionSource: MutableInteractionSource,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val isError = isRequired && textIsBlank && enabled
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val borderColor = when {
@@ -87,57 +147,40 @@ fun MetroDocTextField(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
         }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            enabled = enabled,
-            singleLine = singleLine,
-            minLines = minLines,
-            interactionSource = interactionSource,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                    alpha = 0.6f
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (singleLine) Modifier.height(42.dp)
+                    else Modifier.defaultMinSize(minHeight = (42 * minLines).dp)
+                )
+                .background(backgroundColor, RoundedCornerShape(4.dp))
+                .border(
+                    width = if (isFocused || isError) 1.5.dp else 1.dp,
+                    color = borderColor,
+                    shape = RoundedCornerShape(6.dp)
+                )
+                .padding(
+                    horizontal = 10.dp,
+                    vertical = if (singleLine) 0.dp else 8.dp
                 ),
-            ),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = textFieldModifier.fillMaxWidth(),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(
-                            if (singleLine) Modifier.height(42.dp)
-                            else Modifier.defaultMinSize(minHeight = (42 * minLines).dp)
-                        )
-                        .background(backgroundColor, RoundedCornerShape(4.dp))
-                        .border(
-                            width = if (isFocused || isError) 1.5.dp else 1.dp,
-                            color = borderColor,
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                        .padding(
-                            horizontal = 10.dp,
-                            vertical = if (singleLine) 0.dp else 8.dp
-                        ),
-                    contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart
-                ) {
-                    if (textContent.isEmpty() && placeholder.isNotEmpty() && !isFocused) {
-                        Text(
-                            text = placeholder,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        )
-                    } else if (textContent.isEmpty() && isError && !isFocused) {
-                        Text(
-                            text = "Obrigatório",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                            fontSize = 13.sp
-                        )
-                    }
-                    innerTextField()
-                }
+            contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart
+        ) {
+            if (textIsEmpty && placeholder.isNotEmpty() && !isFocused) {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
+            } else if (textIsEmpty && isError && !isFocused) {
+                Text(
+                    text = "Obrigatório",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                    fontSize = 13.sp
+                )
             }
-        )
+            content()
+        }
     }
 }
