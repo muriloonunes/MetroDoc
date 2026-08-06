@@ -72,7 +72,7 @@ fun SectionEditorPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(42.dp),
+                    .height(30.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -153,7 +153,6 @@ fun SectionEditorPanel(
                             painter = painterResource(Res.drawable.edit),
                             contentDescription = "Editar Título da Seção",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }

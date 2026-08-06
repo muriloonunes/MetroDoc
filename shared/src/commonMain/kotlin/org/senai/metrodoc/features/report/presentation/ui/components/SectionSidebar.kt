@@ -1,15 +1,12 @@
 package org.senai.metrodoc.features.report.presentation.ui.components
 
-import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
@@ -41,7 +38,14 @@ fun SectionSidebar(
 ) {
     val listState = rememberLazyListState()
     var isAddingSection by remember { mutableStateOf(false) }
-    var newSectionTitle by remember { mutableStateOf("") }
+    var newSectionTitle by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = "",
+                selection = TextRange(0)
+            )
+        )
+    }
 
     LaunchedEffect(isAddingSection) {
         if (isAddingSection) {
@@ -75,7 +79,7 @@ fun SectionSidebar(
                         onSelect = {
                             if (isAddingSection) {
                                 isAddingSection = false
-                                newSectionTitle = ""
+                                newSectionTitle = TextFieldValue("")
                             }
                             onSelectSection(section.id)
                             onFocusRoot()
@@ -90,20 +94,20 @@ fun SectionSidebar(
                     item(key = "inline_add_section_tile") {
                         AddSectionInlineTile(
                             title = newSectionTitle,
-                            onTitleChange = { newSectionTitle = it.text },
+                            onTitleChange = { newSectionTitle = it },
                             onConfirm = {
-                                val trimmed = newSectionTitle.trim()
+                                val trimmed = newSectionTitle.text.trim()
                                 if (trimmed.isNotEmpty()) {
                                     val newSection = ReportSection.Customizada(titulo = trimmed)
                                     onIntent(ReportCreatorIntent.OnAddSection(newSection))
                                     onSelectSection(newSection.id)
                                     isAddingSection = false
-                                    newSectionTitle = ""
+                                    newSectionTitle = TextFieldValue("")
                                 }
                             },
                             onCancel = {
                                 isAddingSection = false
-                                newSectionTitle = ""
+                                newSectionTitle = TextFieldValue("")
                             },
                             modifier = Modifier.animateItem()
                         )
@@ -115,7 +119,7 @@ fun SectionSidebar(
                         text = "Adicionar Seção",
                         onClick = {
                             isAddingSection = true
-                            newSectionTitle = ""
+                            newSectionTitle = TextFieldValue("")
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -226,14 +230,14 @@ private fun SectionInlineEditorTile(
 
 @Composable
 private fun AddSectionInlineTile(
-    title: String,
+    title: TextFieldValue,
     onTitleChange: (TextFieldValue) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SectionInlineEditorTile(
-        title = TextFieldValue(title),
+        title = title,
         onTitleChange = onTitleChange,
         onConfirm = onConfirm,
         onCancel = onCancel,
@@ -260,6 +264,15 @@ private fun SectionSidebarTile(
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
 
+    val onEdit = {
+        onSelect()
+        editedTitle = TextFieldValue(
+            text = section.titulo,
+            selection = TextRange(section.titulo.length)
+        )
+        isEditing = true
+    }
+
     if (isEditing && section is ReportSection.Customizada) {
         SectionInlineEditorTile(
             title = editedTitle,
@@ -284,9 +297,19 @@ private fun SectionSidebarTile(
             modifier = modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(6.dp))
-                .clickable { onSelect() }
                 .hoverable(interactionSource)
-                .heightIn(min = 50.dp),
+                .heightIn(min = 50.dp)
+                .then(
+                    if (section is ReportSection.Customizada) {
+                        Modifier.combinedClickable(
+                            interactionSource = interactionSource,
+                            onClick = { onSelect() },
+                            onDoubleClick = { onEdit() }
+                        )
+                    } else {
+                        Modifier.clickable { onSelect() }
+                    }
+                ),
             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
         ) {
@@ -305,12 +328,7 @@ private fun SectionSidebarTile(
                     if (section is ReportSection.Customizada && isHovered) {
                         IconButton(
                             onClick = {
-                                onSelect()
-                                editedTitle = TextFieldValue(
-                                    text = section.titulo,
-                                    selection = TextRange(section.titulo.length)
-                                )
-                                isEditing = true
+                                onEdit()
                             },
                             modifier = Modifier.size(40.dp)
                         ) {
