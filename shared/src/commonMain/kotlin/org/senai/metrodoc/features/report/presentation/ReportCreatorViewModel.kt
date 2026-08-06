@@ -138,8 +138,15 @@ class ReportCreatorViewModel(
             }
 
             is ReportCreatorIntent.OnAddSection -> {
+                val list = _state.value.secoes.toMutableList()
+                val conclusaoIndex = list.indexOfFirst { it is ReportSection.Conclusao }
+                if (conclusaoIndex != -1) {
+                    list.add(conclusaoIndex, intent.section)
+                } else {
+                    list.add(intent.section)
+                }
                 _state.update { currentState ->
-                    currentState.copy(secoes = currentState.secoes + intent.section)
+                    currentState.copy(secoes = list)
                 }
             }
 

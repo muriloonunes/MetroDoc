@@ -84,7 +84,7 @@ interface ReportSection {
         override val id: String = UUID.randomUUID().toString(),
         override val titulo: String = "Interpretação dos Resultados",
         override val removivel: Boolean = false,
-        override val movivel: Boolean = false,
+        override val movivel: Boolean = true,
         val topicos: String = "",
     ) : ReportSection
 
@@ -94,15 +94,5 @@ interface ReportSection {
         override val removivel: Boolean = true,
         override val movivel: Boolean = true,
         val blocos: List<ReportBlock> = emptyList(),
-    ) : ReportSection
-
-    // 4. Exemplo de Seção Futura: Imagens e Anexos
-    data class AnexoFotografico(
-        override val id: String = UUID.randomUUID().toString(),
-        override val titulo: String = "Anexo Fotográfico",
-        override val removivel: Boolean = true,
-        override val movivel: Boolean = true,
-        val imagePaths: List<String> = emptyList(),
-        val observacoes: String = "",
     ) : ReportSection
 }

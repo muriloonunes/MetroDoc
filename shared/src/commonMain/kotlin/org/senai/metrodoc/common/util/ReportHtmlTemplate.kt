@@ -197,7 +197,7 @@ object ReportHtmlTemplate {
 
                 is ReportSection.Conclusao -> {
                     val conclusaoHtml = templateConclusao
-                        .replace("{{CONCLUSAO_INDICE}}", (secoes.indexOf(secao) + 1).toString())
+                        .replace("{{CONCLUSAO_INDICE}}", secoes.indexOf(secao).toString())
                         .replace("{{CONCLUSAO_TEXTO}}", secao.conclusao.toHtmlText())
                     sb.append(conclusaoHtml)
                 }
@@ -287,7 +287,7 @@ object ReportHtmlTemplate {
                         }
                     }
                     val secaoCustomizadaHtml = templateCustomizada
-                        .replace("{{SECAO_INDICE}}", (secoes.indexOf(secao) + 1).toString())
+                        .replace("{{SECAO_INDICE}}", secoes.indexOf(secao).toString())
                         .replace("{{SECAO_TITULO}}", secao.titulo.uppercase())
                         .replace("{{CONTEUDO_BLOCOS}}", blocosHtmlBuilder.toString())
                     sb.append(secaoCustomizadaHtml)
@@ -327,7 +327,7 @@ object ReportHtmlTemplate {
         }
         sb.append(
             templateAnexoOrigem
-                .replace("{{ANEXO_INDICE}}", (secoes.size + 1).toString())
+                .replace("{{ANEXO_INDICE}}", secoes.size.toString())
                 .replace("{{PAGINAS_ORIGEM}}", paginas.toString())
         )
 

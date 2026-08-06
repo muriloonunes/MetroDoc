@@ -338,7 +338,7 @@ private fun SectionSidebarTile(
                             )
                         }
                     }
-                    if (index > 1 && section.movivel) {
+                    if (index > 3 && section.movivel) {
                         IconButton(
                             onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index - 1)) },
                             modifier = Modifier.size(40.dp)
@@ -349,7 +349,7 @@ private fun SectionSidebarTile(
                             )
                         }
                     }
-                    if (section.movivel && index < totalCount - 1) {
+                    if (section.movivel && index < totalCount - 2) {
                         IconButton(
                             onClick = { onIntent(ReportCreatorIntent.OnMoveSection(index, index + 1)) },
                             modifier = Modifier.size(40.dp)
