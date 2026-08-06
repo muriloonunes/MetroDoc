@@ -2,16 +2,22 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b1782f6c61e804bd506cf836126cd328",
+    "identityHash": "d2ead5a7d9a920d763115aac00610906",
     "entities": [
       {
         "tableName": "reports",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cliente` TEXT NOT NULL, `componente` TEXT NOT NULL, `identificadorCalypso` TEXT NOT NULL, `maquina` TEXT NOT NULL, `numeroMaquina` TEXT NOT NULL, `software` TEXT NOT NULL, `operador` TEXT NOT NULL, `dataHora` TEXT NOT NULL, `qtdCaracteristicas` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nomeRelatorio` TEXT NOT NULL, `cliente` TEXT NOT NULL, `componente` TEXT NOT NULL, `identificadorCalypso` TEXT NOT NULL, `maquina` TEXT NOT NULL, `numeroMaquina` TEXT NOT NULL, `software` TEXT NOT NULL, `operador` TEXT NOT NULL, `dataHora` TEXT NOT NULL, `qtdCaracteristicas` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomeRelatorio",
+            "columnName": "nomeRelatorio",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -170,7 +176,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b1782f6c61e804bd506cf836126cd328')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd2ead5a7d9a920d763115aac00610906')"
     ]
   }
 }

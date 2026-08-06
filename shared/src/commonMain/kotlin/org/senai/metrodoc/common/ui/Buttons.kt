@@ -76,6 +76,23 @@ fun MetroDocOutlinedButton(
 }
 
 @Composable
+fun MetroDocOutlinedIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    OutlinedIconButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(6.dp),
+        enabled = enabled,
+        border = ButtonDefaults.outlinedButtonBorder(enabled),
+        modifier = modifier,
+        content = content
+    )
+}
+
+@Composable
 fun MetroDocPrimaryButton(
     onClick: () -> Unit,
     enabled: Boolean = true,

@@ -6,6 +6,7 @@ import androidx.room3.PrimaryKey
 @Entity(tableName = "reports")
 data class ReportDataEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val nomeRelatorio: String,
     val cliente: String,
     val componente: String,
     val identificadorCalypso: String,

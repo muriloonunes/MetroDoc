@@ -5,8 +5,11 @@ import org.senai.metrodoc.common.database.entity.ReportDataEntity
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 
-fun ReportData.toEntity(): ReportDataEntity =
+fun ReportData.toEntity(
+    nomeRelatorio: String,
+): ReportDataEntity =
     ReportDataEntity(
+        nomeRelatorio = nomeRelatorio,
         cliente = this.cliente,
         componente = this.componente,
         identificadorCalypso = this.identificadorCalypso,
