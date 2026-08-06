@@ -15,6 +15,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
@@ -29,6 +30,7 @@ import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
+import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
@@ -148,11 +150,13 @@ fun SectionEditorPanel(
                         onClick = {
                             editarTitulo = true
                         },
+                        modifier = Modifier.size(IconButtonDefaults.smallContainerSize())
                     ) {
                         Icon(
                             painter = painterResource(Res.drawable.edit),
                             contentDescription = "Editar Título da Seção",
                             tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(IconButtonDefaults.smallIconSize)
                         )
                     }
                 }
@@ -220,15 +224,132 @@ fun CustomizadaSectionEditor(
     onDataChanged: (ReportSection.Customizada) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val listState = rememberLazyListState()
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        Box(modifier = Modifier.weight(1f)) {
+            if (section.blocos.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Essa seção ainda não possui conteúdo. Utilize os botões abaixo para adicionar.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize().padding(end = 12.dp),
+                ) {
+                    itemsIndexed(section.blocos, key = { _, bloco -> bloco.id }) { index, bloco ->
+                        val tituloBloco = when (bloco) {
+                            is ReportBlock.Texto -> "Bloco de Texto"
+                            is ReportBlock.GaleriaImagem -> "Galeria de Imagens"
+                            is ReportBlock.QuebraPagina -> "Quebra de Página"
+                            else -> "Bloco"
+                        }
+                        BlockWrapper(
+                            tituloBloco = tituloBloco,
+                            index = index,
+                            totalCount = section.blocos.size,
+                            onMoveUp = {
+                                val list = section.blocos.toMutableList()
+                                val item = list.removeAt(index)
+                                list.add(index - 1, item)
+                                onDataChanged(section.copy(blocos = list))
+                            },
+                            onMoveDown = {
+                                val list = section.blocos.toMutableList()
+                                val item = list.removeAt(index)
+                                list.add(index + 1, item)
+                                onDataChanged(section.copy(blocos = list))
+                            },
+                            onRemove = {
+                                val list = section.blocos.toMutableList()
+                                list.removeAt(index)
+                                onDataChanged(section.copy(blocos = list))
+                            }
+                        ) {
+                            when (bloco) {
+                                is ReportBlock.Texto -> {
+                                    TextoBlocoEditor(
+                                        block = bloco,
+                                        onUpdate = {
+                                            val list = section.blocos.toMutableList()
+                                            list[index] = it
+                                            onDataChanged(section.copy(blocos = list))
+                                        }
+                                    )
+                                }
+                                is ReportBlock.GaleriaImagem -> {
+                                    GaleriaImagemBlocoEditor(
+                                        block = bloco,
+                                        onUpdate = {
+                                            val list = section.blocos.toMutableList()
+                                            list[index] = it
+                                            onDataChanged(section.copy(blocos = list))
+                                        }
+                                    )
+                                }
+                                is ReportBlock.QuebraPagina -> {
+
+                                }
+                            }
+                        }
+                    }
+                }
+                VerticalScrollbar(
+                    adapter = rememberScrollbarAdapter(listState),
+                    style = metroDocDefaultScrollbarStyle(),
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight(),
+                )
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         Text(
-            text = "Seção personalizada criada. Adicione conteúdos ou edite as informações necessárias.",
-            style = MaterialTheme.typography.bodyMedium,
+            text = "Adicionar Conteúdo:",
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            MetroDocOutlinedButton(
+                onClick = {
+                    onDataChanged(section.copy(blocos = section.blocos + ReportBlock.Texto()))
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Adicionar Texto")
+            }
+            MetroDocOutlinedButton(
+                onClick = {
+                    onDataChanged(section.copy(blocos = section.blocos + ReportBlock.GaleriaImagem()))
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Adicionar Imagem")
+            }
+            MetroDocOutlinedButton(
+                onClick = {
+                    onDataChanged(section.copy(blocos = section.blocos + ReportBlock.QuebraPagina()))
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Adicionar Quebra de Página")
+            }
+        }
     }
 }
 

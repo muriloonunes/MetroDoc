@@ -19,6 +19,7 @@ interface ReportBlock {
     ): ReportBlock {
         data class Imagem(
             val id: String = UUID.randomUUID().toString(),
+            val nome: String = "",
             val path: String,
             val legenda: String = "",
         )
