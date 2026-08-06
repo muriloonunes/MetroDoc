@@ -275,7 +275,8 @@ fun CustomizadaSectionEditor(
                                 val list = section.blocos.toMutableList()
                                 list.removeAt(index)
                                 onDataChanged(section.copy(blocos = list))
-                            }
+                            },
+                            modifier = Modifier.animateItem()
                         ) {
                             when (bloco) {
                                 is ReportBlock.Texto -> {

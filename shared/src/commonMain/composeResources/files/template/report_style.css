@@ -268,3 +268,8 @@ div.footer {
     border: 1px solid #d0d0d0;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
+.secao-customizada-container {
+    margin-bottom: 20px;
+    page-break-inside: auto;
+}

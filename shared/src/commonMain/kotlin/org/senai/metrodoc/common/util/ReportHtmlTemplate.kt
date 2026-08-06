@@ -1,5 +1,6 @@
 package org.senai.metrodoc.common.util
 
+import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 
@@ -63,6 +64,7 @@ object ReportHtmlTemplate {
         val templateInterpretacaoResultados =
             ResourceUtils.getResourceAsString("files/template/sections/interpretacao.html")
         val templateConclusao = ResourceUtils.getResourceAsString("files/template/sections/conclusao.html")
+        val templateCustomizada = ResourceUtils.getResourceAsString("files/template/sections/secao_customizada.html")
 
         secoes.forEach { secao ->
             when (secao) {
@@ -195,13 +197,100 @@ object ReportHtmlTemplate {
 
                 is ReportSection.Conclusao -> {
                     val conclusaoHtml = templateConclusao
-                        .replace("{{CONCLUSAO_INDICE}}", (secoes.size - 1).toString())
+                        .replace("{{CONCLUSAO_INDICE}}", (secoes.indexOf(secao) + 1).toString())
                         .replace("{{CONCLUSAO_TEXTO}}", secao.conclusao.toHtmlText())
                     sb.append(conclusaoHtml)
                 }
 
                 is ReportSection.Customizada -> {
+                    val blocosHtmlBuilder = StringBuilder()
+                    secao.blocos.forEach { bloco ->
+                        when (bloco) {
+                            is ReportBlock.Texto -> {
+                                if (bloco.conteudo.isNotBlank()) {
+                                    if (bloco.emTopicos) {
+                                        blocosHtmlBuilder.append(
+                                            """
+                                                <ul class="lista-topicos">
+                                                    ${bloco.conteudo.toHtmlListItem()}
+                                                </ul>
+                                            """.trimIndent()
+                                        )
+                                    } else {
+                                        blocosHtmlBuilder.append(
+                                            """
+                                                <div class="section-content">
+                                                    ${bloco.conteudo.toHtmlText()}
+                                                </div>
+                                            """.trimIndent()
+                                        )
+                                    }
+                                }
+                            }
 
+                            is ReportBlock.GaleriaImagem -> {
+                                if (bloco.imagens.isNotEmpty()) {
+                                    val colunas = bloco.colunas.coerceIn(1, 4)
+                                    val larguraPorc = 100 / colunas
+                                    val temLegendaGeral = bloco.legenda.isNotBlank()
+
+                                    val linhasHtml = bloco.imagens.chunked(colunas)
+                                        .joinToString(separator = "\n") { grupo ->
+                                            val colunasHtml = grupo.mapIndexed { index, imagem ->
+                                                val isUltimoDaLinha = index == grupo.size - 1
+                                                val colSpan = if (isUltimoDaLinha && grupo.size < colunas) {
+                                                    colunas - (grupo.size - 1)
+                                                } else {
+                                                    1
+                                                }
+                                                val srcImage = if (imagem.path.isNotBlank()) {
+                                                    ResourceUtils.localFileToBase64(imagem.path)
+                                                } else {
+                                                    ""
+                                                }
+                                                val legendaIndivHtml =
+                                                    if (!temLegendaGeral && imagem.legenda.isNotBlank()) {
+                                                        "<div class=\"img-caption\">${imagem.legenda.toHtmlText()}</div>"
+                                                    } else ""
+                                                """
+                                                    <td colspan="$colSpan" style="width: $larguraPorc%; text-align: center; vertical-align: top; padding: 6px;">
+                                                        <img src="$srcImage" class="intro-img" style="max-height: 180px;" alt="Foto"/>
+                                                        $legendaIndivHtml
+                                                    </td>
+                                                """.trimIndent()
+                                            }.joinToString("\n")
+                                            "<tr>\n$colunasHtml\n</tr>"
+                                        }
+                                    val legendaGeralHtml = if (temLegendaGeral) {
+                                        """
+                                            <div class="img-caption" style="margin-top: 6px; font-weight: bold;">
+                                                ${bloco.legenda.toHtmlText()}
+                                            </div>
+                                        """.trimIndent()
+                                    } else ""
+                                    blocosHtmlBuilder.append(
+                                        """
+                                            <div style="margin: 12px 0; text-align: center;">
+                                                <table style="width: 100%; border-collapse: collapse; margin: 0 auto;">
+                                                    $linhasHtml
+                                                </table>
+                                                $legendaGeralHtml
+                                            </div>
+                                        """.trimIndent()
+                                    )
+                                }
+                            }
+
+                            is ReportBlock.QuebraPagina -> {
+                                blocosHtmlBuilder.append("<div style=\"page-break-after: always;\"></div>")
+                            }
+                        }
+                    }
+                    val secaoCustomizadaHtml = templateCustomizada
+                        .replace("{{SECAO_INDICE}}", (secoes.indexOf(secao) + 1).toString())
+                        .replace("{{SECAO_TITULO}}", secao.titulo.uppercase())
+                        .replace("{{CONTEUDO_BLOCOS}}", blocosHtmlBuilder.toString())
+                    sb.append(secaoCustomizadaHtml)
                 }
             }
         }
@@ -238,7 +327,7 @@ object ReportHtmlTemplate {
         }
         sb.append(
             templateAnexoOrigem
-                .replace("{{ANEXO_INDICE}}", secoes.size.toString())
+                .replace("{{ANEXO_INDICE}}", (secoes.size + 1).toString())
                 .replace("{{PAGINAS_ORIGEM}}", paginas.toString())
         )
 
