@@ -120,8 +120,12 @@ fun ReportCreatorScreen(
                 keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape
             }
     ) {
+        var titulo by remember(state.pdfName) { mutableStateOf("Relatório ${state.currentReport?.cliente ?: "Sem Cliente"} — ${state.pdfName}") }
         TopToolbar(
-            title = "Relatório ${state.currentReport?.cliente ?: "Sem Cliente"} — ${state.pdfName}",
+            title = titulo,
+            onUpdateTitle = {
+                titulo = it
+            },
             onBackClick = { onIntent(ReportCreatorIntent.OnBackClicked) },
             onEmitReportClick = {
                 saverLauncher.launch(
@@ -129,7 +133,8 @@ fun ReportCreatorScreen(
                     defaultExtension = "pdf",
                     allowedExtensions = setOf("pdf")
                 )
-            }
+            },
+            onFocusRoot = { rootFocusRequester.requestFocus() }
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

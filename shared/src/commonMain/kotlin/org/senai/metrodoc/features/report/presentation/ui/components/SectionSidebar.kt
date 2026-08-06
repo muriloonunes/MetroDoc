@@ -185,21 +185,19 @@ private fun SectionInlineEditorTile(
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
                         .onPreviewKeyEvent { keyEvent ->
-                            if (keyEvent.type == KeyEventType.KeyDown) {
-                                when (keyEvent.key) {
-                                    Key.Enter, Key.NumPadEnter -> {
-                                        onConfirm()
-                                        true
-                                    }
-
-                                    Key.Escape -> {
-                                        onCancel()
-                                        true
-                                    }
-
-                                    else -> false
+                            keyEvent.type == KeyEventType.KeyDown && when (keyEvent.key) {
+                                Key.Enter, Key.NumPadEnter -> {
+                                    onConfirm()
+                                    true
                                 }
-                            } else false
+
+                                Key.Escape -> {
+                                    onCancel()
+                                    true
+                                }
+
+                                else -> false
+                            }
                         }
                 )
             }

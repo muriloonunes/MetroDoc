@@ -90,25 +90,23 @@ fun SectionEditorPanel(
                         textFieldModifier = Modifier
                             .focusRequester(focusRequester)
                             .onPreviewKeyEvent { keyEvent ->
-                                if (keyEvent.type == KeyEventType.KeyDown) {
-                                    when (keyEvent.key) {
-                                        Key.Enter, Key.NumPadEnter -> {
-                                            val trimmed = textFieldValue.text.trim()
-                                            if (trimmed.isNotEmpty()) {
-                                                onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = trimmed)))
-                                            }
-                                            editarTitulo = false
-                                            true
+                                keyEvent.type == KeyEventType.KeyDown && when (keyEvent.key) {
+                                    Key.Enter, Key.NumPadEnter -> {
+                                        val trimmed = textFieldValue.text.trim()
+                                        if (trimmed.isNotEmpty()) {
+                                            onIntent(ReportCreatorIntent.OnUpdateSection(section.copy(titulo = trimmed)))
                                         }
-
-                                        Key.Escape -> {
-                                            editarTitulo = false
-                                            true
-                                        }
-
-                                        else -> false
+                                        editarTitulo = false
+                                        true
                                     }
-                                } else false
+
+                                    Key.Escape -> {
+                                        editarTitulo = false
+                                        true
+                                    }
+
+                                    else -> false
+                                }
                             }
                     )
                     IconButton(
