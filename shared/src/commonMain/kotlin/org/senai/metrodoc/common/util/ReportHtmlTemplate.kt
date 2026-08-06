@@ -84,7 +84,7 @@ object ReportHtmlTemplate {
                                 $subTextosHtml
                             </td>
                             <td colspan="2" style="width: 50%; text-align: center; vertical-align: middle;" class="image-container-cell">
-                                <img src="$imgBase64" class="intro-img" alt="Foto do Componente"/>
+                                    <img src="$imgBase64" class="intro-img" alt="Foto do Componente"/>
                                 <div class="img-caption" style="text-align: center; margin-top: 6px;">$legendaImagem</div>
                             </td>
                         """.trimIndent()
@@ -252,9 +252,12 @@ object ReportHtmlTemplate {
                                                     if (!temLegendaGeral && imagem.legenda.isNotBlank()) {
                                                         "<div class=\"img-caption\">${imagem.legenda.toHtmlText()}</div>"
                                                     } else ""
+
                                                 """
-                                                    <td colspan="$colSpan" style="width: $larguraPorc%; text-align: center; vertical-align: top; padding: 6px;">
-                                                        <img src="$srcImage" class="intro-img" style="max-height: 180px;" alt="Foto"/>
+                                                    <td colspan="$colSpan" style="width: $larguraPorc%; text-align: center; vertical-align: middle; padding: 6px;">
+                                                        <div style="text-align: center;">
+                                                            <img src="$srcImage" class="intro-img" style="max-height: 180px;" alt="Foto"/>
+                                                        </div>
                                                         $legendaIndivHtml
                                                     </td>
                                                 """.trimIndent()

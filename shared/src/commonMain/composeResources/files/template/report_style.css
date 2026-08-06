@@ -116,13 +116,7 @@ div.footer {
 .image-container-cell {
     text-align: center;
     vertical-align: middle;
-}
-
-.image-container-cell {
-    text-align: center;
-    vertical-align: middle;
     padding: 10px;
-    align-items: center;
 }
 
 .intro-img {
@@ -130,11 +124,10 @@ div.footer {
     max-height: 200px;
     height: auto;
     object-fit: contain;
-    display: block;
+    display: inline-block;
     margin: 0 auto;
     border: 1px solid #b0c4de;
     border-radius: 2px;
-    align-items: center;
 }
 
 .img-caption {
@@ -222,13 +215,13 @@ div.footer {
     vertical-align: middle;
 }
 
-.status-dentro {
-    color: #198754;
+.results-table td.status-dentro {
+    color: #198754 !important;
     font-weight: bold;
 }
 
-.status-fora {
-    color: #C00000;
+.results-table td.status-fora {
+    color: #C00000 !important;
     font-weight: bold;
 }
 
@@ -261,7 +254,7 @@ div.footer {
 }
 
 .anexo-origem-img {
-    display: block;
+    display: inline-block;
     margin: 0 auto;
     max-width: 95%;
     max-height: 18cm;
