@@ -1,6 +1,7 @@
 package org.senai.metrodoc.common.database.dao
 
 import androidx.room3.*
+import kotlinx.coroutines.flow.Flow
 import org.senai.metrodoc.common.database.dto.ProjectDto
 import org.senai.metrodoc.common.database.dto.ProjectWithMeasurements
 import org.senai.metrodoc.common.database.entity.MeasurementDataEntity
@@ -9,7 +10,7 @@ import org.senai.metrodoc.common.database.entity.ReportDataEntity
 @Dao
 interface ProjectDao {
     @Query("SELECT id, nomeRelatorio AS nomeProjeto, lastModified AS modificadoEm FROM reports ORDER BY lastModified DESC")
-    suspend fun getProjectsSummaries(): List<ProjectDto>
+    fun getProjectsSummaries(): Flow<List<ProjectDto>>
 
     @Transaction
     @Query("SELECT * FROM reports WHERE id = :projectId")

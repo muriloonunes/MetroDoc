@@ -3,10 +3,7 @@ package org.senai.metrodoc.features.welcome.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.common.data.RoomProjectRepository
 import org.senai.metrodoc.common.util.PdfParser
@@ -26,17 +23,22 @@ class WelcomeScreenViewModel(
 
     init {
         viewModelScope.launch {
-            _state.update { it.copy(isLoadingRecentProjects = true) }
-            try {
-                val recentProjects = roomProjectRepository.getRecentProjects()
-                _state.update { it.copy(recentProjects = recentProjects) }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _state.update {
-                    it.copy(isLoadingRecentProjects = false)
+            roomProjectRepository.getRecentProjects()
+                .onStart {
+                    _state.update { it.copy(isLoadingRecentProjects = true) }
                 }
-            }
+                .catch { e ->
+                    e.printStackTrace()
+                    _state.update { it.copy(isLoadingRecentProjects = false) }
+                }
+                .collect { projects ->
+                    _state.update {
+                        it.copy(
+                            recentProjects = projects,
+                            isLoadingRecentProjects = false
+                        )
+                    }
+                }
         }
     }
 

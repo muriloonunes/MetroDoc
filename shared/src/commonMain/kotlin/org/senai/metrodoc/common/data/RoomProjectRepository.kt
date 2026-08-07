@@ -1,5 +1,6 @@
 package org.senai.metrodoc.common.data
 
+import kotlinx.coroutines.flow.Flow
 import org.senai.metrodoc.common.database.dao.ProjectDao
 import org.senai.metrodoc.common.database.dto.FullProject
 import org.senai.metrodoc.common.database.dto.ProjectDto
@@ -10,7 +11,7 @@ import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 
 interface RoomProjectRepository {
-    suspend fun getRecentProjects(): List<ProjectDto>
+    suspend fun getRecentProjects(): Flow<List<ProjectDto>>
 
     suspend fun getProjectById(projectId: Long): FullProject?
 
@@ -27,7 +28,7 @@ interface RoomProjectRepository {
 class RoomProjectRepositoryImpl(
     private val projectDao: ProjectDao
 ) : RoomProjectRepository {
-    override suspend fun getRecentProjects(): List<ProjectDto> {
+    override suspend fun getRecentProjects(): Flow<List<ProjectDto>> {
         return projectDao.getProjectsSummaries()
     }
 
