@@ -4,6 +4,8 @@ import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import kotlinx.coroutines.Dispatchers
 import org.senai.metrodoc.common.database.entity.MeasurementDataEntity
 import org.senai.metrodoc.common.database.entity.ReportDataEntity
 
@@ -18,4 +20,13 @@ abstract class MetroDocDatabase : RoomDatabase()
 
 expect object AppDatabaseConstructor : RoomDatabaseConstructor<MetroDocDatabase> {
     override fun initialize(): MetroDocDatabase
+}
+
+fun getRoomDatabase(
+    builder: RoomDatabase.Builder<MetroDocDatabase>
+): MetroDocDatabase {
+    return builder.
+            setDriver(BundledSQLiteDriver())
+        .setQueryCoroutineContext(Dispatchers.IO)
+        .build()
 }
