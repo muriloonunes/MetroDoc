@@ -28,12 +28,15 @@ data class ReportCreatorState(
 
         other as ReportCreatorState
 
+        if (reportId != other.reportId) return false
+        if (isInitializing != other.isInitializing) return false
         if (zoomFactor != other.zoomFactor) return false
         if (showBackDialog != other.showBackDialog) return false
         if (isGeneratingPdf != other.isGeneratingPdf) return false
         if (isGeneratingPreview != other.isGeneratingPreview) return false
         if (pdfPath != other.pdfPath) return false
         if (pdfName != other.pdfName) return false
+        if (reportName != other.reportName) return false
         if (pdf != other.pdf) return false
         if (errorMessage != other.errorMessage) return false
         if (currentReport != other.currentReport) return false
@@ -46,12 +49,15 @@ data class ReportCreatorState(
     }
 
     override fun hashCode(): Int {
-        var result = zoomFactor.hashCode()
+        var result = reportId.hashCode()
+        result = 31 * result + isInitializing.hashCode()
+        result = 31 * result + zoomFactor.hashCode()
         result = 31 * result + showBackDialog.hashCode()
         result = 31 * result + isGeneratingPdf.hashCode()
         result = 31 * result + isGeneratingPreview.hashCode()
         result = 31 * result + pdfPath.hashCode()
         result = 31 * result + pdfName.hashCode()
+        result = 31 * result + reportName.hashCode()
         result = 31 * result + pdf.hashCode()
         result = 31 * result + errorMessage.hashCode()
         result = 31 * result + currentReport.hashCode()
