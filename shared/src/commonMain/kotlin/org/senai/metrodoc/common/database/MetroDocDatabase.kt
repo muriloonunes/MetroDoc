@@ -6,6 +6,7 @@ import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
+import org.senai.metrodoc.common.database.dao.ProjectDao
 import org.senai.metrodoc.common.database.entity.MeasurementDataEntity
 import org.senai.metrodoc.common.database.entity.ReportDataEntity
 
@@ -16,7 +17,9 @@ import org.senai.metrodoc.common.database.entity.ReportDataEntity
     ], version = 1
 )
 @ConstructedBy(AppDatabaseConstructor::class)
-abstract class MetroDocDatabase : RoomDatabase()
+abstract class MetroDocDatabase : RoomDatabase() {
+    abstract fun getProjectDao(): ProjectDao
+}
 
 expect object AppDatabaseConstructor : RoomDatabaseConstructor<MetroDocDatabase> {
     override fun initialize(): MetroDocDatabase

@@ -120,13 +120,13 @@ fun ReportCreatorScreen(
                 keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape
             }
     ) {
-        var titulo by remember(state.pdfName) { mutableStateOf("Relatório ${state.currentReport?.cliente ?: "Sem Cliente"} — ${state.pdfName}") }
         TopToolbar(
-            title = titulo,
+            title = state.reportName,
             onUpdateTitle = {
-                titulo = it
+                onIntent(ReportCreatorIntent.OnReportNameChanged(it))
             },
             onBackClick = { onIntent(ReportCreatorIntent.OnBackClicked) },
+            onSave = { onIntent(ReportCreatorIntent.OnSaveProject) },
             onEmitReportClick = {
                 saverLauncher.launch(
                     suggestedName = "${state.pdfName}_Relatorio.pdf",

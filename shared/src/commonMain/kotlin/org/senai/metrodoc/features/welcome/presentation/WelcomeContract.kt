@@ -1,10 +1,12 @@
 package org.senai.metrodoc.features.welcome.presentation
 
+import org.senai.metrodoc.common.database.dto.ProjectDto
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 
 data class WelcomeViewState(
-    val recentProjects: List<String> = emptyList(),
+    val recentProjects: List<ProjectDto> = emptyList(),
+    val isLoadingRecentProjects: Boolean = false,
     val pdfPath: String = "",
     val pdfName: String = "",
     val errorMessage: String? = null,
@@ -39,7 +41,7 @@ sealed interface WelcomeScreenIntent {
     data class OnMeasurementChanged(val index: Int, val updatedMeasurement: MeasurementData) : WelcomeScreenIntent
     data object OnAddMeasurement : WelcomeScreenIntent
 
-    data class OnProjectSelected(val path: String) : WelcomeScreenIntent
+    data class OnProjectSelected(val id: Long) : WelcomeScreenIntent
     data object OnConfirmData: WelcomeScreenIntent
     data object OnDismissReportDialog : WelcomeScreenIntent
 }
@@ -47,6 +49,7 @@ sealed interface WelcomeScreenIntent {
 sealed interface WelcomeEffect {
     data object TriggerFilePicker : WelcomeEffect
     data class NavigateToRelatoryCreator(
+        val reportId: Long?,
         val path: String,
         val pdfName: String
     ) : WelcomeEffect

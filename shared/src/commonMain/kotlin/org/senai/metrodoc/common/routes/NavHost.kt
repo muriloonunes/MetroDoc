@@ -32,19 +32,31 @@ fun MetroDocNavHost(
             WelcomeScreen(
                 state = state,
                 onIntent = { intent -> welcomeViewModel.handleIntent(intent) },
-                onNavigateToRelatoryCreator = { path, name ->
-                    navController.navigate(Route.RelatoryCreator(path = path, name = name))
+                onNavigateToRelatoryCreator = { reportId, path, name ->
+                    navController.navigate(
+                        Route.RelatoryCreator(
+                            reportId = reportId,
+                            path = path,
+                            name = name
+                        )
+                    )
                 },
                 effect = welcomeViewModel.effect,
             )
         }
         composable<Route.RelatoryCreator> { backStackEntry ->
             val route = backStackEntry.toRoute<Route.RelatoryCreator>()
-            val relatoryViewModel =koinViewModel<ReportCreatorViewModel>()
+            val relatoryViewModel = koinViewModel<ReportCreatorViewModel>()
             val state by relatoryViewModel.state.collectAsState()
 
-            LaunchedEffect(route.path) {
-                relatoryViewModel.handleIntent(ReportCreatorIntent.OnInit(path = route.path, name = route.name))
+            LaunchedEffect(route) {
+                relatoryViewModel.handleIntent(
+                    ReportCreatorIntent.OnInit(
+                        reportId = route.reportId,
+                        pdfPath = route.path,
+                        pdfName = route.name
+                    )
+                )
             }
 
             ReportCreatorScreen(

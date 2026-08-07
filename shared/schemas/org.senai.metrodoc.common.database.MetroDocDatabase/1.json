@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d2ead5a7d9a920d763115aac00610906",
+    "identityHash": "f06d8abc734f9096987c55a6bd48f223",
     "entities": [
       {
         "tableName": "reports",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nomeRelatorio` TEXT NOT NULL, `cliente` TEXT NOT NULL, `componente` TEXT NOT NULL, `identificadorCalypso` TEXT NOT NULL, `maquina` TEXT NOT NULL, `numeroMaquina` TEXT NOT NULL, `software` TEXT NOT NULL, `operador` TEXT NOT NULL, `dataHora` TEXT NOT NULL, `qtdCaracteristicas` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nomeRelatorio` TEXT NOT NULL, `pdfName` TEXT NOT NULL, `pdfPath` TEXT NOT NULL, `lastModified` INTEGER NOT NULL, `secoesJson` TEXT NOT NULL, `cliente` TEXT NOT NULL, `componente` TEXT NOT NULL, `identificadorCalypso` TEXT NOT NULL, `maquina` TEXT NOT NULL, `numeroMaquina` TEXT NOT NULL, `software` TEXT NOT NULL, `operador` TEXT NOT NULL, `dataHora` TEXT NOT NULL, `qtdCaracteristicas` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -17,6 +17,30 @@
           {
             "fieldPath": "nomeRelatorio",
             "columnName": "nomeRelatorio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pdfName",
+            "columnName": "pdfName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pdfPath",
+            "columnName": "pdfPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secoesJson",
+            "columnName": "secoesJson",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -176,7 +200,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd2ead5a7d9a920d763115aac00610906')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f06d8abc734f9096987c55a6bd48f223')"
     ]
   }
 }

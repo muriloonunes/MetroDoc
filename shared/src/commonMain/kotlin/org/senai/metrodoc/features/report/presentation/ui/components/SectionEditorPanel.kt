@@ -251,7 +251,6 @@ fun CustomizadaSectionEditor(
                             is ReportBlock.Texto -> "Bloco de Texto"
                             is ReportBlock.GaleriaImagem -> "Galeria de Imagens"
                             is ReportBlock.QuebraPagina -> "Quebra de Página"
-                            else -> "Bloco"
                         }
                         BlockWrapper(
                             tituloBloco = tituloBloco,

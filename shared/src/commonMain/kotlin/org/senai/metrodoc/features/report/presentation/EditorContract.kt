@@ -5,8 +5,10 @@ import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.presentation.ui.RightPanelTab
 
 data class ReportCreatorState(
+    val reportId: Long? = null,
     val pdfPath: String = "",
     val pdfName: String = "",
+    val reportName: String = "",
     val pdf: Map<String, ByteArray> = mutableMapOf(),
     val zoomFactor: Float = 1.0f,
     val errorMessage: String? = null,
@@ -50,18 +52,18 @@ data class ReportCreatorState(
         result = 31 * result + pdfPath.hashCode()
         result = 31 * result + pdfName.hashCode()
         result = 31 * result + pdf.hashCode()
-        result = 31 * result + (errorMessage?.hashCode() ?: 0)
-        result = 31 * result + (currentReport?.hashCode() ?: 0)
+        result = 31 * result + errorMessage.hashCode()
+        result = 31 * result + currentReport.hashCode()
         result = 31 * result + abaDireitaAtiva.hashCode()
         result = 31 * result + secoes.hashCode()
-        result = 31 * result + (secaoAtivaId?.hashCode() ?: 0)
+        result = 31 * result + secaoAtivaId.hashCode()
         result = 31 * result + (previewPdfBytes?.contentHashCode() ?: 0)
         return result
     }
 }
 
 sealed interface ReportCreatorIntent {
-    data class OnInit(val path: String, val name: String) : ReportCreatorIntent
+    data class OnInit(val reportId: Long?, val pdfPath: String, val pdfName: String) : ReportCreatorIntent
 
     data class OnPdfLoaded(val pdfPath: String, val bytes: ByteArray) : ReportCreatorIntent {
         override fun equals(other: Any?): Boolean {
@@ -96,7 +98,10 @@ sealed interface ReportCreatorIntent {
     data class OnAddSection(val section: ReportSection) : ReportCreatorIntent
     data class OnAddMeasurement(val sectionId: String) : ReportCreatorIntent
 
+    data class OnReportNameChanged(val newName: String) : ReportCreatorIntent
     data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent
+
+    data object OnSaveProject : ReportCreatorIntent
 
     data class OnGeneratePdf(val destinationPath: String) : ReportCreatorIntent
     data object OnCancelGeneration : ReportCreatorIntent
@@ -111,9 +116,7 @@ sealed interface ReportCreatorEffect {
 
             other as OnPdfGenerated
 
-            if (!bytes.contentEquals(other.bytes)) return false
-
-            return true
+            return bytes.contentEquals(other.bytes)
         }
 
         override fun hashCode(): Int {

@@ -7,6 +7,11 @@ import androidx.room3.PrimaryKey
 data class ReportDataEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val nomeRelatorio: String,
+    val pdfName: String,
+    val pdfPath: String,
+    val lastModified: Long,
+    val secoesJson: String,
+
     val cliente: String,
     val componente: String,
     val identificadorCalypso: String,
@@ -15,5 +20,5 @@ data class ReportDataEntity(
     val software: String,
     val operador: String,
     val dataHora: String,
-    val qtdCaracteristicas: String
+    val qtdCaracteristicas: String,
 )

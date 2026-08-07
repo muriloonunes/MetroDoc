@@ -16,11 +16,13 @@ import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.Rep
 fun WelcomeScreen(
     state: WelcomeViewState,
     onIntent: (WelcomeScreenIntent) -> Unit,
-    onNavigateToRelatoryCreator: (String, String) -> Unit,
+    onNavigateToRelatoryCreator: (Long?, String, String) -> Unit,
     effect: Flow<WelcomeEffect>,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         WelcomeContent(
+            projetosRecentes = state.recentProjects,
+            carregandoProjetos = state.isLoadingRecentProjects,
             onIntent = onIntent,
             onNavigateToRelatoryCreator = onNavigateToRelatoryCreator,
             effect = effect

@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,15 +31,21 @@ import kotlinx.coroutines.flow.Flow
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.add
 import org.jetbrains.compose.resources.painterResource
+import org.senai.metrodoc.common.database.dto.ProjectDto
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WelcomeContent(
+    projetosRecentes: List<ProjectDto>,
+    carregandoProjetos: Boolean,
     onIntent: (WelcomeScreenIntent) -> Unit,
-    onNavigateToRelatoryCreator: (String, String) -> Unit,
+    onNavigateToRelatoryCreator: (Long?, String, String) -> Unit,
     effect: Flow<WelcomeEffect>,
 ) {
     val pickerLauncher = rememberFilePickerLauncher(
@@ -63,6 +70,7 @@ fun WelcomeContent(
 
                 is WelcomeEffect.NavigateToRelatoryCreator -> {
                     onNavigateToRelatoryCreator(
+                        welcomeEffect.reportId,
                         welcomeEffect.path,
                         welcomeEffect.pdfName
                     )
@@ -150,30 +158,45 @@ fun WelcomeContent(
             Spacer(modifier = Modifier.height(12.dp))
             Box(modifier = Modifier.fillMaxSize()) {
                 val gridState = rememberLazyGridState()
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 280.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    state = gridState,
-                    modifier = Modifier.fillMaxSize().padding(end = 12.dp)
-                ) {
-                    items(10) { index ->
-                        RecentProjectCard(
-                            projectName = "Projeto Exemplo ${index + 1}.pdf",
-                            lastModified = "Hoje, 14:30",
-                            onOpenProject = {},
-                            onExportPdf = {},
-                            onRemoveFromRecent = {},
-                            onDeleteFile = {}
-                        )
+                if (carregandoProjetos) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (projetosRecentes.isNotEmpty()) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 280.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        state = gridState,
+                        modifier = Modifier.fillMaxSize().padding(end = 12.dp)
+                    ) {
+                        items(projetosRecentes) { projeto ->
+                            val data = Instant
+                                .ofEpochMilli(projeto.modificadoEm)
+                                .atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                            RecentProjectCard(
+                                projectName = projeto.nomeProjeto,
+                                lastModified = data,
+                                onOpenProject = {
+                                    onIntent(WelcomeScreenIntent.OnProjectSelected(projeto.id))
+                                },
+                                onExportPdf = {},
+                                onDeleteFile = {}
+                            )
+                        }
                     }
+                    VerticalScrollbar(
+                        adapter = rememberScrollbarAdapter(scrollState = gridState),
+                        style = metroDocDefaultScrollbarStyle(),
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                } else {
+                    Text(
+                        text = "Nenhum projeto recente",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
-                VerticalScrollbar(
-                    adapter = rememberScrollbarAdapter(scrollState = gridState),
-                    style = metroDocDefaultScrollbarStyle(),
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
             }
         }
     }

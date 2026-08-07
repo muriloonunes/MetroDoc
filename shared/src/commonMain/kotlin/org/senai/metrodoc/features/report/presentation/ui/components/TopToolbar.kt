@@ -30,6 +30,7 @@ fun TopToolbar(
     title: String,
     onUpdateTitle: (String) -> Unit,
     onBackClick: () -> Unit,
+    onSave: () -> Unit,
     onEmitReportClick: () -> Unit,
     onFocusRoot: () -> Unit,
 ) {
@@ -180,7 +181,9 @@ fun TopToolbar(
 
         ) {
             MetroDocOutlinedIconButton(
-                onClick = {},
+                onClick = {
+                    onSave()
+                },
                 modifier = Modifier.size(36.dp)
             ) {
                 Icon(

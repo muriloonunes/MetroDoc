@@ -8,18 +8,21 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.senai.metrodoc.common.data.RoomProjectRepository
 import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.common.util.PdfRenderEngine
-import org.senai.metrodoc.features.report.data.ReportRepository
+import org.senai.metrodoc.features.report.data.MemoryReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
+import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect.OnPdfGenerated
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 class ReportCreatorViewModel(
+    private val memoryReportRepository: MemoryReportRepository,
+    private val roomProjectRepository: RoomProjectRepository,
     private val renderEngine: PdfRenderEngine,
-    private val reportRepository: ReportRepository,
     private val pdfGenerator: PdfGenerator,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ReportCreatorState())
@@ -33,7 +36,7 @@ class ReportCreatorViewModel(
     private var previewJob: Job? = null
 
     init {
-        val currentReport = reportRepository.currentReport.value
+        val currentReport = memoryReportRepository.currentReport.value
         val initialSections = listOf(
             ReportSection.Introducao(),
             ReportSection.Identificacao(reportData = currentReport ?: ReportData()),
@@ -64,12 +67,35 @@ class ReportCreatorViewModel(
     fun handleIntent(intent: ReportCreatorIntent) {
         when (intent) {
             is ReportCreatorIntent.OnInit -> {
-                _state.update {
-                    it.copy(
-                        pdfPath = intent.path,
-                        pdfName = intent.name,
-                        secaoAtivaId = it.secoes.first().id,
-                    )
+                val savedId = intent.reportId
+
+                if (savedId != null) {
+                    viewModelScope.launch {
+                        val savedProject = roomProjectRepository.getProjectById(savedId)
+                        if (savedProject != null) {
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    reportId = savedProject.projectId,
+                                    pdfPath = savedProject.pdfPath,
+                                    pdfName = savedProject.pdfName,
+                                    reportName = savedProject.reportName,
+                                    currentReport = savedProject.reportData,
+                                    secoes = savedProject.secoes,
+                                    secaoAtivaId = savedProject.secoes.firstOrNull()?.id
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    _state.update {
+                        it.copy(
+                            reportId = intent.reportId,
+                            pdfPath = intent.pdfPath,
+                            pdfName = intent.pdfName,
+                            reportName = "Relatório ${_state.value.currentReport?.cliente ?: "Sem Cliente"} — ${intent.pdfName}",
+                            secaoAtivaId = it.secoes.first().id,
+                        )
+                    }
                 }
             }
 
@@ -104,7 +130,7 @@ class ReportCreatorViewModel(
 
             ReportCreatorIntent.OnBackConfirmed -> {
                 _state.update { it.copy(showBackDialog = false) }
-                reportRepository.clearReport()
+                memoryReportRepository.clearReport()
                 viewModelScope.launch {
                     _effect.send(ReportCreatorEffect.NavigateBack)
                 }
@@ -167,6 +193,10 @@ class ReportCreatorViewModel(
                 _state.update { it.copy(currentReport = intent.updatedData) }
             }
 
+            is ReportCreatorIntent.OnReportNameChanged -> {
+                _state.update { it.copy(reportName = intent.newName) }
+            }
+
             is ReportCreatorIntent.OnGeneratePdf -> {
                 val reportData = _state.value.currentReport ?: return
                 val secoes = _state.value.secoes
@@ -183,7 +213,7 @@ class ReportCreatorViewModel(
                             originalPdfPath = pdfPath,
                             renderEngine = renderEngine
                         )
-                        sendEffect(ReportCreatorEffect.OnPdfGenerated(bytes))
+                        sendEffect(OnPdfGenerated(bytes))
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         e.printStackTrace()
@@ -200,6 +230,21 @@ class ReportCreatorViewModel(
                 generatePdfJob?.cancel()
                 generatePdfJob = null
                 _state.update { it.copy(isGeneratingPdf = false) }
+            }
+
+            ReportCreatorIntent.OnSaveProject -> {
+                viewModelScope.launch {
+                    val newId = roomProjectRepository.saveProject(
+                        projectId = _state.value.reportId,
+                        projectName = _state.value.reportName,
+                        pdfPath = state.value.pdfPath,
+                        pdfName = _state.value.pdfName,
+                        reportData = _state.value.currentReport ?: return@launch,
+                        secoes = _state.value.secoes
+                    )
+
+                    _state.update { it.copy(reportId = newId) }
+                }
             }
         }
     }

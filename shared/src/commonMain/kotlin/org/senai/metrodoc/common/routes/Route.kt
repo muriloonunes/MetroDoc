@@ -8,6 +8,7 @@ sealed interface Route {
 
     @Serializable
     data class RelatoryCreator(
+        val reportId: Long? = null,
         val path: String,
         val name: String,
     ) : Route

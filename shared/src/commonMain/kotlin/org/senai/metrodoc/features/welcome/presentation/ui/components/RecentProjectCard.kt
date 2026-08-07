@@ -13,11 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import metrodoc.shared.generated.resources.Res
+import metrodoc.shared.generated.resources.delete
 import metrodoc.shared.generated.resources.export
 import metrodoc.shared.generated.resources.file
-import metrodoc.shared.generated.resources.more_vert
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -26,7 +25,6 @@ fun RecentProjectCard(
     lastModified: String,
     onOpenProject: () -> Unit,
     onExportPdf: () -> Unit,
-    onRemoveFromRecent: () -> Unit,
     onDeleteFile: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -119,44 +117,20 @@ fun RecentProjectCard(
                             )
                         }
                     }
-
-                    Box {
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                        tooltip = { PlainTooltip { Text("Deletar projeto") } },
+                        state = rememberTooltipState()
+                    ) {
                         IconButton(
-                            onClick = { showMenu = true },
+                            onClick = { onDeleteFile() },
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                painter = painterResource(Res.drawable.more_vert),
+                                painter = painterResource(Res.drawable.delete),
                                 contentDescription = "Mais opções",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Remover dos recentes", fontSize = 13.sp) },
-                                onClick = {
-                                    showMenu = false
-                                    onRemoveFromRecent()
-                                }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = "Excluir arquivo do computador",
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontSize = 13.sp
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onDeleteFile()
-                                }
                             )
                         }
                     }

@@ -5,13 +5,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.senai.metrodoc.features.report.model.ReportData
 
-interface ReportRepository {
+interface MemoryReportRepository {
     val currentReport: StateFlow<ReportData?>
     fun setReport(data: ReportData)
     fun clearReport()
 }
 
-class InMemoryReportRepository: ReportRepository {
+class InMemoryMemoryReportRepository: MemoryReportRepository {
     private val _currentReport = MutableStateFlow<ReportData?>(null)
     override val currentReport: StateFlow<ReportData?> = _currentReport.asStateFlow()
 

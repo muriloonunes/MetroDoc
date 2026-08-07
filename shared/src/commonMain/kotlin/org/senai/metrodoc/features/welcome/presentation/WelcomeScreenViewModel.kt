@@ -8,19 +8,37 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.senai.metrodoc.features.report.data.ReportRepository
-import org.senai.metrodoc.features.report.model.MeasurementData
+import org.senai.metrodoc.common.data.RoomProjectRepository
 import org.senai.metrodoc.common.util.PdfParser
+import org.senai.metrodoc.features.report.data.MemoryReportRepository
+import org.senai.metrodoc.features.report.model.MeasurementData
 
 class WelcomeScreenViewModel(
+    private val roomProjectRepository: RoomProjectRepository,
     private val pdfParser: PdfParser,
-    private val reportRepository: ReportRepository,
+    private val memoryReportRepository: MemoryReportRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(WelcomeViewState())
     val state = _state.asStateFlow()
 
     private val _effect = Channel<WelcomeEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
+
+    init {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingRecentProjects = true) }
+            try {
+                val recentProjects = roomProjectRepository.getRecentProjects()
+                _state.update { it.copy(recentProjects = recentProjects) }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _state.update {
+                    it.copy(isLoadingRecentProjects = false)
+                }
+            }
+        }
+    }
 
     fun handleIntent(intent: WelcomeScreenIntent) {
         when (intent) {
@@ -34,7 +52,13 @@ class WelcomeScreenViewModel(
             }
 
             is WelcomeScreenIntent.OnProjectSelected -> {
-
+                sendEffect(
+                    WelcomeEffect.NavigateToRelatoryCreator(
+                        reportId = intent.id,
+                        path = "",
+                        pdfName = ""
+                    )
+                )
             }
 
             is WelcomeScreenIntent.OnReportFieldChanged -> {
@@ -70,7 +94,7 @@ class WelcomeScreenViewModel(
                 val path = _state.value.pdfPath
                 val pdfName = _state.value.pdfName
 
-                reportRepository.setReport(finalData)
+                memoryReportRepository.setReport(finalData)
                 _state.update {
                     it.copy(
                         showReportDialog = false,
@@ -82,6 +106,7 @@ class WelcomeScreenViewModel(
                 }
                 sendEffect(
                     WelcomeEffect.NavigateToRelatoryCreator(
+                        reportId = null,
                         path = path,
                         pdfName = pdfName
                     )
