@@ -10,6 +10,8 @@ import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
 import org.senai.metrodoc.features.welcome.presentation.WelcomeViewState
 import org.senai.metrodoc.features.welcome.presentation.ui.components.WelcomeContent
+import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.ConfirmDeleteAllProjectsDialog
+import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.ConfirmDeleteProjectDialog
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.ReportDataDialog
 
 @Composable
@@ -60,6 +62,20 @@ fun WelcomeScreen(
                 onAddMeasurement = { onIntent(WelcomeScreenIntent.OnAddMeasurement) },
                 reportData = state.editedReportData ?: state.reportData,
                 isValid = state.isFormValid,
+            )
+        }
+
+        state.projectToDelete?.let {
+            ConfirmDeleteProjectDialog(
+                onConfirm = { onIntent(WelcomeScreenIntent.OnConfirmDeleteProject) },
+                onDismiss = { onIntent(WelcomeScreenIntent.OnDismissDeleteProjectDialog) }
+            )
+        }
+
+        if (state.showDeleteAllProjectsDialog) {
+            ConfirmDeleteAllProjectsDialog(
+                onConfirm = { onIntent(WelcomeScreenIntent.OnConfirmDeleteAllProjects) },
+                onDismiss = { onIntent(WelcomeScreenIntent.OnDismissDeleteAllProjectsDialog) }
             )
         }
     }

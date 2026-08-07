@@ -81,6 +81,39 @@ class WelcomeScreenViewModel(
                 }
             }
 
+            is WelcomeScreenIntent.OnRequestDeleteProject -> {
+                _state.update { it.copy(projectToDelete = intent.project) }
+            }
+
+            WelcomeScreenIntent.OnDismissDeleteProjectDialog -> {
+                _state.update { it.copy(projectToDelete = null) }
+            }
+
+            WelcomeScreenIntent.OnConfirmDeleteProject -> {
+                val targetProject = _state.value.projectToDelete
+                if (targetProject != null) {
+                    viewModelScope.launch {
+                        roomProjectRepository.deleteProjectById(targetProject.id)
+                        _state.update { it.copy(projectToDelete = null) }
+                    }
+                }
+            }
+
+            WelcomeScreenIntent.OnRequestDeleteAllProjects -> {
+                _state.update { it.copy(showDeleteAllProjectsDialog = true) }
+            }
+
+            WelcomeScreenIntent.OnDismissDeleteAllProjectsDialog -> {
+                _state.update { it.copy(showDeleteAllProjectsDialog = false) }
+            }
+
+            WelcomeScreenIntent.OnConfirmDeleteAllProjects -> {
+                viewModelScope.launch {
+                    roomProjectRepository.deleteAllProjects()
+                    _state.update { it.copy(showDeleteAllProjectsDialog = false) }
+                }
+            }
+
             is WelcomeScreenIntent.OnReportFieldChanged -> {
                 _state.update { it.copy(editedReportData = intent.updatedData) }
             }

@@ -185,10 +185,12 @@ fun WelcomeContent(
                     text = "Projetos recentes",
                     style = MaterialTheme.typography.titleMedium,
                 )
-                TextButton(onClick = {
-                    onIntent(WelcomeScreenIntent.OnDeleteAllProjects)
-                }) {
-                    Text("Limpar recentes", fontSize = 12.sp)
+                if (projetosRecentes.isNotEmpty()) {
+                    TextButton(onClick = {
+                        onIntent(WelcomeScreenIntent.OnRequestDeleteAllProjects)
+                    }) {
+                        Text("Limpar recentes", fontSize = 12.sp)
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -223,7 +225,9 @@ fun WelcomeContent(
                                         allowedExtensions = setOf("pdf")
                                     )
                                 },
-                                onDeleteFile = {}
+                                onDeleteFile = {
+                                    onIntent(WelcomeScreenIntent.OnRequestDeleteProject(projeto))
+                                }
                             )
                         }
                     }
