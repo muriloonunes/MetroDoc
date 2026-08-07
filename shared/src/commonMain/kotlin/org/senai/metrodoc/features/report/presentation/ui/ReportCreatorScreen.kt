@@ -68,6 +68,8 @@ fun ReportCreatorScreen(
                 file.write(bytes)
 
                 pdfBytesToSave = null
+
+                onIntent(ReportCreatorIntent.OnSaveProject)
             }
         }
     }
@@ -131,7 +133,7 @@ fun ReportCreatorScreen(
             onSave = { onIntent(ReportCreatorIntent.OnSaveProject) },
             onEmitReportClick = {
                 saverLauncher.launch(
-                    suggestedName = "${state.pdfName}_Relatorio.pdf",
+                    suggestedName = "${state.reportName}.pdf",
                     defaultExtension = "pdf",
                     allowedExtensions = setOf("pdf")
                 )
