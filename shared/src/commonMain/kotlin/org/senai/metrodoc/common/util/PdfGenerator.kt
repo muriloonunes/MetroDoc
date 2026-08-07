@@ -7,12 +7,13 @@ import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 import java.io.ByteArrayOutputStream
 
-class PdfGenerator {
+class PdfGenerator(
+    val renderEngine: PdfRenderEngine
+) {
     suspend fun generatePdfBytes(
         reportData: ReportData,
         secoes: List<ReportSection>,
         originalPdfPath: String,
-        renderEngine: PdfRenderEngine,
     ): ByteArray = withContext(Dispatchers.IO) {
         val html = ReportHtmlTemplate.generateHtml(reportData, secoes, originalPdfPath, renderEngine)
         val os = ByteArrayOutputStream()
@@ -27,7 +28,6 @@ class PdfGenerator {
     suspend fun generatePreviewPdfBytes(
         reportData: ReportData,
         secoes: List<ReportSection>,
-        renderEngine: PdfRenderEngine,
     ): ByteArray = withContext(Dispatchers.IO) {
         val html = ReportHtmlTemplate.generateHtml(
             reportData = reportData,

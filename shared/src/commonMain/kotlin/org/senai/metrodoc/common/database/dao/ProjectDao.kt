@@ -34,4 +34,10 @@ interface ProjectDao {
 
         return generatedId
     }
+
+    @Query("DELETE FROM reports WHERE id = :projectId")
+    suspend fun deleteProjectById(projectId: Long)
+
+    @Query("DELETE FROM reports")
+    suspend fun deleteAllProjects()
 }

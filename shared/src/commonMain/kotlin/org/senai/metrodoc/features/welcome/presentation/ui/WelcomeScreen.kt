@@ -35,6 +35,16 @@ fun WelcomeScreen(
             )
         }
 
+        if (state.isGeneratingPdf) {
+            MetroDocLoadingDialog(
+                loadingMessage = "Gerando PDF",
+                isCancelable = true,
+                onCancelLoading = {
+                    onIntent(WelcomeScreenIntent.OnCancelGeneration)
+                }
+            )
+        }
+
         if (!state.isProcessingPdf && state.showReportDialog && state.reportData != null) {
             ReportDataDialog(
                 onDismissRequest = { onIntent(WelcomeScreenIntent.OnDismissReportDialog) },

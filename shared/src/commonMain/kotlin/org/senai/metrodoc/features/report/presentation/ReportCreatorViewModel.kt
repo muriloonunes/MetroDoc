@@ -242,7 +242,6 @@ class ReportCreatorViewModel(
                             reportData = reportData,
                             secoes = secoes,
                             originalPdfPath = pdfPath,
-                            renderEngine = renderEngine
                         )
                         sendEffect(OnPdfGenerated(bytes))
                     } catch (e: Exception) {
@@ -282,7 +281,6 @@ class ReportCreatorViewModel(
                 val bytes = pdfGenerator.generatePreviewPdfBytes(
                     reportData = reportData,
                     secoes = secoes,
-                    renderEngine = renderEngine
                 )
                 _state.update {
                     it.copy(

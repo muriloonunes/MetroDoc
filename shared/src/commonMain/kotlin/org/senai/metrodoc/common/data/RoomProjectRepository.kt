@@ -23,6 +23,10 @@ interface RoomProjectRepository {
         reportData: ReportData,
         secoes: List<ReportSection>
     ): Long
+
+    suspend fun deleteProjectById(projectId: Long)
+
+    suspend fun deleteAllProjects()
 }
 
 class RoomProjectRepositoryImpl(
@@ -81,5 +85,13 @@ class RoomProjectRepositoryImpl(
         val measurementEntities = reportData.caracteristicas.map { it.toEntity(0) }
 
         return projectDao.saveFullProject(reportEntity, measurementEntities)
+    }
+
+    override suspend fun deleteProjectById(projectId: Long) {
+        projectDao.deleteProjectById(projectId)
+    }
+
+    override suspend fun deleteAllProjects() {
+        projectDao.deleteAllProjects()
     }
 }

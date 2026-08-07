@@ -6,10 +6,10 @@ import org.koin.core.logger.Level
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.includes
 
-    fun initKoin(config: KoinAppDeclaration? = null): KoinApplication {
-        return startKoin {
-            printLogger(Level.DEBUG)
-            includes(config)
-            modules(sharedModule, platformModule)
-        }
+fun initKoin(config: KoinAppDeclaration? = null): KoinApplication {
+    return startKoin {
+        printLogger(Level.DEBUG)
+        includes(config)
+        modules(sharedModule, platformModule)
     }
+}

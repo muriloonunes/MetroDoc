@@ -14,6 +14,7 @@ data class WelcomeViewState(
     val reportData: ReportData? = null,
     val editedReportData: ReportData? = null,
     val showReportDialog: Boolean = false,
+    val isGeneratingPdf: Boolean = false,
 ) {
     val isFormValid: Boolean
         get() = editedReportData?.let {
@@ -42,7 +43,13 @@ sealed interface WelcomeScreenIntent {
     data object OnAddMeasurement : WelcomeScreenIntent
 
     data class OnProjectSelected(val id: Long) : WelcomeScreenIntent
-    data object OnConfirmData: WelcomeScreenIntent
+    data class OnDeleteProject(val id: Long) : WelcomeScreenIntent
+    data object OnDeleteAllProjects : WelcomeScreenIntent
+
+    data class OnGeneratePdf(val id: Long) : WelcomeScreenIntent
+    data object OnCancelGeneration : WelcomeScreenIntent
+
+    data object OnConfirmData : WelcomeScreenIntent
     data object OnDismissReportDialog : WelcomeScreenIntent
 }
 
@@ -51,6 +58,21 @@ sealed interface WelcomeEffect {
     data class NavigateToRelatoryCreator(
         val reportId: Long?,
         val path: String,
-        val pdfName: String
+        val pdfName: String,
     ) : WelcomeEffect
+
+    data class OnPdfGenerated(val bytes: ByteArray) : WelcomeEffect {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as OnPdfGenerated
+
+            return bytes.contentEquals(other.bytes)
+        }
+
+        override fun hashCode(): Int {
+            return bytes.contentHashCode()
+        }
+    }
 }

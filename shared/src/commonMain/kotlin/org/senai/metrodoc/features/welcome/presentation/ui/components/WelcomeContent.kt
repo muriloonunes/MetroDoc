@@ -12,22 +12,25 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.add
 import org.jetbrains.compose.resources.painterResource
@@ -61,6 +64,33 @@ fun WelcomeContent(
             )
         }
     }
+
+    val scope = rememberCoroutineScope()
+    var pdfBytesToSave by remember { mutableStateOf<ByteArray?>(null) }
+    var projectIdToExport by remember { mutableStateOf<Long?>(null) }
+
+    val saverLauncher = rememberFileSaverLauncher(
+        dialogSettings = FileKitDialogSettings.createDefault()
+    ) { file ->
+        if (file != null) {
+            scope.launch {
+                if (pdfBytesToSave == null) {
+
+                    onIntent(WelcomeScreenIntent.OnGeneratePdf(projectIdToExport ?: return@launch))
+                }
+                val bytes = snapshotFlow { pdfBytesToSave }
+                    .filterNotNull()
+                    .first()
+
+                file.write(bytes)
+
+                pdfBytesToSave = null
+                projectIdToExport = null
+            }
+        } else {
+            projectIdToExport = null
+        }
+    }
     LaunchedEffect(effect) {
         effect.collect { welcomeEffect ->
             when (welcomeEffect) {
@@ -74,6 +104,10 @@ fun WelcomeContent(
                         welcomeEffect.path,
                         welcomeEffect.pdfName
                     )
+                }
+
+                is WelcomeEffect.OnPdfGenerated -> {
+                    pdfBytesToSave = welcomeEffect.bytes
                 }
             }
         }
@@ -151,7 +185,9 @@ fun WelcomeContent(
                     text = "Projetos recentes",
                     style = MaterialTheme.typography.titleMedium,
                 )
-                TextButton(onClick = { /* TODO: Limpar historico ou ver todos */ }) {
+                TextButton(onClick = {
+                    onIntent(WelcomeScreenIntent.OnDeleteAllProjects)
+                }) {
                     Text("Limpar recentes", fontSize = 12.sp)
                 }
             }
@@ -179,7 +215,14 @@ fun WelcomeContent(
                                 onOpenProject = {
                                     onIntent(WelcomeScreenIntent.OnProjectSelected(projeto.id))
                                 },
-                                onExportPdf = {},
+                                onExportPdf = {
+                                    projectIdToExport = projeto.id
+                                    saverLauncher.launch(
+                                        suggestedName = "${projeto.nomeProjeto}.pdf",
+                                        defaultExtension = "pdf",
+                                        allowedExtensions = setOf("pdf")
+                                    )
+                                },
                                 onDeleteFile = {}
                             )
                         }
@@ -193,7 +236,8 @@ fun WelcomeContent(
                     Text(
                         text = "Nenhum projeto recente",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.TopCenter)
                     )
                 }
 
