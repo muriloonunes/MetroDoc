@@ -162,7 +162,7 @@ fun WelcomeContent(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 } else if (projetosRecentes.isNotEmpty()) {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 280.dp),
+                        columns = GridCells.Adaptive(minSize = 320.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         state = gridState,
