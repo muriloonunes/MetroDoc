@@ -96,7 +96,8 @@ fun ReportCreatorScreen(
     if (state.showBackDialog) {
         ConfirmBackDialog(
             onConfirm = { onIntent(ReportCreatorIntent.OnBackConfirmed) },
-            onDismiss = { onIntent(ReportCreatorIntent.OnBackDismissed) }
+            onDismiss = { onIntent(ReportCreatorIntent.OnBackDismissed) },
+            onSave = { onIntent(ReportCreatorIntent.OnSaveProject) }
         )
     }
 
@@ -122,6 +123,7 @@ fun ReportCreatorScreen(
     ) {
         TopToolbar(
             title = state.reportName,
+            savedState = state.reportSaveState,
             onUpdateTitle = {
                 onIntent(ReportCreatorIntent.OnReportNameChanged(it))
             },
@@ -221,6 +223,7 @@ fun ReportCreatorScreen(
                                         secaoAtivaId = state.secaoAtivaId,
                                     )
                                 }
+
                                 RightPanelTab.PDF_ORIGINAL -> {
                                     PDFViewer(
                                         pdfPath = state.pdfPath,

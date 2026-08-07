@@ -2,6 +2,7 @@ package org.senai.metrodoc.features.report.presentation
 
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
+import org.senai.metrodoc.features.report.model.SavedState
 import org.senai.metrodoc.features.report.presentation.ui.RightPanelTab
 
 data class ReportCreatorState(
@@ -21,6 +22,7 @@ data class ReportCreatorState(
     val isGeneratingPdf: Boolean = false,
     val previewPdfBytes: ByteArray? = null,
     val isGeneratingPreview: Boolean = false,
+    val reportSaveState: SavedState = SavedState.Unsaved
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -44,6 +46,7 @@ data class ReportCreatorState(
         if (secoes != other.secoes) return false
         if (secaoAtivaId != other.secaoAtivaId) return false
         if (!previewPdfBytes.contentEquals(other.previewPdfBytes)) return false
+        if (reportSaveState != other.reportSaveState) return false
 
         return true
     }
@@ -65,11 +68,14 @@ data class ReportCreatorState(
         result = 31 * result + secoes.hashCode()
         result = 31 * result + secaoAtivaId.hashCode()
         result = 31 * result + (previewPdfBytes?.contentHashCode() ?: 0)
+        result = 31 * result + reportSaveState.hashCode()
         return result
     }
 }
 
 sealed interface ReportCreatorIntent {
+    val contentChanged: Boolean get() = false
+
     data class OnInit(val reportId: Long?, val pdfPath: String, val pdfName: String) : ReportCreatorIntent
 
     data class OnPdfLoaded(val pdfPath: String, val bytes: ByteArray) : ReportCreatorIntent {
@@ -99,14 +105,28 @@ sealed interface ReportCreatorIntent {
     data object OnBackDismissed : ReportCreatorIntent
     data object OnBackConfirmed : ReportCreatorIntent
 
-    data class OnUpdateSection(val updatedSection: ReportSection) : ReportCreatorIntent
-    data class OnRemoveSection(val sectionId: String) : ReportCreatorIntent
-    data class OnMoveSection(val fromIndex: Int, val toIndex: Int) : ReportCreatorIntent
-    data class OnAddSection(val section: ReportSection) : ReportCreatorIntent
-    data class OnAddMeasurement(val sectionId: String) : ReportCreatorIntent
+    data class OnUpdateSection(val updatedSection: ReportSection) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
+    data class OnRemoveSection(val sectionId: String) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
+    data class OnMoveSection(val fromIndex: Int, val toIndex: Int) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
+    data class OnAddSection(val section: ReportSection) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
+    data class OnAddMeasurement(val sectionId: String) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
 
-    data class OnReportNameChanged(val newName: String) : ReportCreatorIntent
-    data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent
+    data class OnReportNameChanged(val newName: String) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
+    data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
 
     data object OnSaveProject : ReportCreatorIntent
 

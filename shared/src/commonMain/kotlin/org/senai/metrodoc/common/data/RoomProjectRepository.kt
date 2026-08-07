@@ -11,7 +11,7 @@ import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 
 interface RoomProjectRepository {
-    suspend fun getRecentProjects(): Flow<List<ProjectDto>>
+    fun getRecentProjects(): Flow<List<ProjectDto>>
 
     suspend fun getProjectById(projectId: Long): FullProject?
 
@@ -28,7 +28,7 @@ interface RoomProjectRepository {
 class RoomProjectRepositoryImpl(
     private val projectDao: ProjectDao
 ) : RoomProjectRepository {
-    override suspend fun getRecentProjects(): Flow<List<ProjectDto>> {
+    override fun getRecentProjects(): Flow<List<ProjectDto>> {
         return projectDao.getProjectsSummaries()
     }
 

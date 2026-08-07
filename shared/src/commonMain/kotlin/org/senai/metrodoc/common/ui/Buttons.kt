@@ -1,5 +1,6 @@
 package org.senai.metrodoc.common.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
@@ -62,6 +63,7 @@ fun MetroDocOutlinedButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -69,6 +71,7 @@ fun MetroDocOutlinedButton(
         onClick = onClick,
         shape = RoundedCornerShape(6.dp),
         enabled = enabled,
+        border = border,
         contentPadding = contentPadding,
         modifier = modifier,
         content = content,

@@ -1,5 +1,6 @@
 package org.senai.metrodoc.features.report.presentation.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,12 +17,15 @@ import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.close
 import metrodoc.shared.generated.resources.warning
 import org.jetbrains.compose.resources.painterResource
+import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
+import org.senai.metrodoc.common.ui.MetroDocPrimaryButton
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ConfirmBackDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    onSave: () -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -98,7 +102,7 @@ fun ConfirmBackDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(
+                    TextButton(
                         onClick = onDismiss,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                         shape = ButtonDefaults.squareShape
@@ -111,17 +115,32 @@ fun ConfirmBackDialog(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
+                    MetroDocOutlinedButton(
                         onClick = onConfirm,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.error
                         ),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        shape = ButtonDefaults.squareShape
                     ) {
                         Text(
                             text = "Sair sem Salvar",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    MetroDocPrimaryButton(
+                        onClick = {
+                            onSave()
+                            onConfirm()
+                        },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = "Salvar e Sair",
                             style = MaterialTheme.typography.labelLarge
                         )
                     }
