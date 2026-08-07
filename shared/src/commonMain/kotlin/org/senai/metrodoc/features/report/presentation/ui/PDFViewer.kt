@@ -18,9 +18,11 @@ import dev.nucleusframework.pdfium.PdfPage
 import dev.nucleusframework.pdfium.PdfReaderState
 import dev.nucleusframework.pdfium.rememberPdfReaderState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun PDFViewer(
@@ -36,7 +38,7 @@ fun PDFViewer(
 
     LaunchedEffect(targetPage, reader.pageCount) {
         if (targetPage != null && targetPage >= 0 && reader.pageCount > 0) {
-            kotlinx.coroutines.delay(50)
+            delay(50.milliseconds)
             listState.animateScrollToItem(targetPage)
         }
     }

@@ -6,6 +6,7 @@ import org.senai.metrodoc.features.report.presentation.ui.RightPanelTab
 
 data class ReportCreatorState(
     val reportId: Long? = null,
+    val isInitializing: Boolean = true,
     val pdfPath: String = "",
     val pdfName: String = "",
     val reportName: String = "",

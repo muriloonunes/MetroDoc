@@ -53,11 +53,11 @@ class ReportCreatorViewModel(
         }
 
         viewModelScope.launch {
-            _state.map { Pair(it.secoes, it.currentReport) }
+            _state.map { Triple(it.secoes, it.currentReport, it.isInitializing) }
                 .distinctUntilChanged()
                 .debounce(750L.milliseconds)
-                .collect { (sections, reportData) ->
-                    if (reportData != null) {
+                .collect { (sections, reportData, isInitializing) ->
+                    if (!isInitializing && reportData != null) {
                         generatePreview(sections, reportData)
                     }
                 }
@@ -76,6 +76,7 @@ class ReportCreatorViewModel(
                             _state.update { currentState ->
                                 currentState.copy(
                                     reportId = savedProject.projectId,
+                                    isInitializing = false,
                                     pdfPath = savedProject.pdfPath,
                                     pdfName = savedProject.pdfName,
                                     reportName = savedProject.reportName,
@@ -94,6 +95,7 @@ class ReportCreatorViewModel(
                             pdfName = intent.pdfName,
                             reportName = "Relatório ${_state.value.currentReport?.cliente ?: "Sem Cliente"} — ${intent.pdfName}",
                             secaoAtivaId = it.secoes.first().id,
+                            isInitializing = false
                         )
                     }
                 }
