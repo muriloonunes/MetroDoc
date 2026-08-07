@@ -182,8 +182,16 @@ object ReportHtmlTemplate {
                                 </tr>
                             """.trimIndent()
                         }
+                    val resumoDimensionalHtml = if (secao.resumoDimensional.isNotBlank()) {
+                        """
+                            <span>
+                                Resumo dimensional: ${secao.resumoDimensional.toHtmlText()}
+                            </span>
+                        """.trimIndent()
+                    } else ""
                     val resultadosDimensionaisHtml = templateResultadosDimensionais
                         .replace("{{DADOS_MEDICOES}}", medicoesHtml)
+                        .replace("{{RESUMO_DIMENSIONAL}}", resumoDimensionalHtml)
                     sb.append(resultadosDimensionaisHtml)
                 }
 
