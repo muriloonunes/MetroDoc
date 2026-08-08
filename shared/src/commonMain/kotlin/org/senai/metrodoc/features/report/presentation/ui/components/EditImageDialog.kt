@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
@@ -45,7 +47,8 @@ import kotlin.math.roundToInt
 enum class ToolType {
     ARROW,
     CIRCLE,
-    SQUARE
+    SQUARE,
+    NUMBER,
 }
 
 @Composable
@@ -63,10 +66,13 @@ fun EditImageDialog(
 
     var selectedTool by remember { mutableStateOf(ToolType.CIRCLE) }
     var currentColor by remember { mutableStateOf(Color.Red) }
+    var currentTextColor by remember { mutableStateOf(Color.White) }
     var currentStrokeWidth by remember { mutableStateOf(DrawShape.StrokeWidth.MEDIUM) }
     val drawings = remember { mutableStateListOf<DrawShape>() }
-
     val redoStack = remember { mutableStateListOf<DrawShape>() }
+    val textMeasurer = rememberTextMeasurer()
+
+    var badgeNumber by remember { mutableIntStateOf(1) }
 
     var isShiftPressed by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -100,12 +106,14 @@ fun EditImageDialog(
             }
         }
     }
+
     fun clearAll() {
         if (drawings.isNotEmpty() && drawings.none { it is DrawShape.ClearGroup }) {
             val currentShapes = drawings.toList()
             drawings.clear()
             drawings.add(DrawShape.ClearGroup(shapes = currentShapes))
             redoStack.clear()
+            badgeNumber = 1
         }
     }
 
@@ -162,6 +170,10 @@ fun EditImageDialog(
                         currentColor = currentColor,
                         onColorSelected = {
                             currentColor = it
+                        },
+                        currentTextColor = currentTextColor,
+                        onTextColorSelected = {
+                            currentTextColor = it
                         },
                         currentStrokeWidth = currentStrokeWidth,
                         onStrokeWidthSelected = {
@@ -223,6 +235,7 @@ fun EditImageDialog(
                                         undo()
                                         return@onKeyEvent true
                                     }
+
                                     Key.Y -> {
                                         redo()
                                         return@onKeyEvent true
@@ -284,48 +297,73 @@ fun EditImageDialog(
                                             )
                                             .clipToBounds()
                                             .pointerInput(selectedTool) {
-                                                detectDragGestures(
-                                                    onDragStart = { offset ->
-                                                        focusRequester.requestFocus()
-                                                        val clampedOffset = Offset(
-                                                            x = offset.x.coerceIn(0f, bounds.width),
-                                                            y = offset.y.coerceIn(0f, bounds.height)
-                                                        )
-                                                        dragStartOffset = clampedOffset
-                                                        dragCurrentOffset = clampedOffset
-                                                    },
-                                                    onDrag = { change, _ ->
-                                                        dragCurrentOffset = Offset(
-                                                            x = change.position.x.coerceIn(0f, bounds.width),
-                                                            y = change.position.y.coerceIn(0f, bounds.height)
-                                                        )
-                                                    },
-                                                    onDragEnd = {
-                                                        val start = dragStartOffset
-                                                        val end = dragCurrentOffset
-
-                                                        if (start != null && end != null) {
-                                                            createDrawing(
-                                                                start = start,
-                                                                end = end,
-                                                                tool = selectedTool,
-                                                                color = currentColor,
-                                                                width = currentStrokeWidth,
-                                                                nextBadgeNumber = drawings.size + 1,
-                                                                isShiftPressed = isShiftPressed,
-                                                            )?.let { shape ->
-                                                                drawings.add(shape)
-                                                                redoStack.clear()
+                                                when (selectedTool) {
+                                                    ToolType.NUMBER -> {
+                                                        detectTapGestures(
+                                                            onTap = { offset ->
+                                                                createDrawing(
+                                                                    start = offset,
+                                                                    end = offset,
+                                                                    tool = selectedTool,
+                                                                    color = currentColor,
+                                                                    textcolor = currentTextColor,
+                                                                    width = currentStrokeWidth,
+                                                                    isShiftPressed = isShiftPressed,
+                                                                    nextBadgeNumber = badgeNumber++
+                                                                )?.let { shape ->
+                                                                    drawings.add(shape)
+                                                                    redoStack.clear()
+                                                                }
                                                             }
-                                                        }
-                                                        dragStartOffset = null
-                                                        dragCurrentOffset = null
+                                                        )
                                                     }
-                                                )
+
+                                                    else -> {
+                                                        detectDragGestures(
+                                                            onDragStart = { offset ->
+                                                                focusRequester.requestFocus()
+                                                                val clampedOffset = Offset(
+                                                                    x = offset.x.coerceIn(0f, bounds.width),
+                                                                    y = offset.y.coerceIn(0f, bounds.height)
+                                                                )
+                                                                dragStartOffset = clampedOffset
+                                                                dragCurrentOffset = clampedOffset
+                                                            },
+                                                            onDrag = { change, _ ->
+                                                                dragCurrentOffset = Offset(
+                                                                    x = change.position.x.coerceIn(0f, bounds.width),
+                                                                    y = change.position.y.coerceIn(0f, bounds.height)
+                                                                )
+                                                            },
+                                                            onDragEnd = {
+                                                                val start = dragStartOffset
+                                                                val end = dragCurrentOffset
+
+                                                                if (start != null && end != null) {
+                                                                    createDrawing(
+                                                                        start = start,
+                                                                        end = end,
+                                                                        tool = selectedTool,
+                                                                        color = currentColor,
+                                                                        textcolor = currentTextColor,
+                                                                        width = currentStrokeWidth,
+                                                                        nextBadgeNumber = badgeNumber,
+                                                                        isShiftPressed = isShiftPressed,
+                                                                    )?.let { shape ->
+                                                                        drawings.add(shape)
+                                                                        redoStack.clear()
+                                                                    }
+                                                                }
+                                                                dragStartOffset = null
+                                                                dragCurrentOffset = null
+                                                            }
+                                                        )
+                                                    }
+                                                }
                                             }
                                     ) {
                                         drawings.forEach { draw ->
-                                            drawImageDrawing(draw)
+                                            drawImageDrawing(draw, textMeasurer)
                                         }
 
                                         val start = dragStartOffset
@@ -336,13 +374,14 @@ fun EditImageDialog(
                                                 end = end,
                                                 tool = selectedTool,
                                                 color = currentColor,
+                                                textcolor = currentTextColor,
                                                 width = currentStrokeWidth,
                                                 isShiftPressed = isShiftPressed,
-                                                nextBadgeNumber = 0
+                                                nextBadgeNumber = badgeNumber
                                             )
 
                                             if (previewShape != null) {
-                                                drawImageDrawing(previewShape)
+                                                drawImageDrawing(previewShape, textMeasurer)
                                             }
                                         }
                                     }
@@ -420,6 +459,8 @@ fun AnnotationToolbar(
     onToolSelected: (ToolType) -> Unit,
     currentColor: Color,
     onColorSelected: (Color) -> Unit,
+    currentTextColor: Color,
+    onTextColorSelected: (Color) -> Unit,
     currentStrokeWidth: DrawShape.StrokeWidth,
     onStrokeWidthSelected: (DrawShape.StrokeWidth) -> Unit,
     canUndo: Boolean,
@@ -504,6 +545,26 @@ fun AnnotationToolbar(
                     )
                 }
             }
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Numeração") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = { onToolSelected(ToolType.NUMBER) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTool == ToolType.NUMBER) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (selectedTool == ToolType.NUMBER) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.badge),
+                        contentDescription = "Numeração",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
 
             VerticalDivider(
                 modifier = Modifier
@@ -531,6 +592,29 @@ fun AnnotationToolbar(
                     )
                 }
             }
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Cor do texto") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = {
+                        showNativeColorPicker(currentColor, onTextColorSelected)
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.text_color),
+                        contentDescription = "Cor do texto",
+                        tint = currentTextColor,
+                        modifier = Modifier.size(20.dp)
+                            .border(width = 1.5.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    )
+                }
+            }
+
+
 
             Box {
                 TooltipBox(

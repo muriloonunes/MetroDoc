@@ -8,6 +8,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import org.senai.metrodoc.features.report.model.DrawShape
 import org.senai.metrodoc.features.report.presentation.ui.components.ToolType
 import javax.swing.JColorChooser
@@ -18,6 +23,7 @@ fun createDrawing(
     end: Offset,
     tool: ToolType,
     color: Color,
+    textcolor: Color,
     width: DrawShape.StrokeWidth,
     nextBadgeNumber: Int,
     isShiftPressed: Boolean,
@@ -81,11 +87,20 @@ fun createDrawing(
             DrawShape.Arrow(start = start, end = finalEnd, color = color, strokeWidth = width.value)
         }
 
+        ToolType.NUMBER -> {
+            DrawShape.NumberBadge(
+                center = start,
+                number = nextBadgeNumber,
+                color = color,
+                textColor = textcolor
+            )
+        }
     }
 }
 
 fun DrawScope.drawImageDrawing(
     drawing: DrawShape,
+    textMeasurer: TextMeasurer,
 ) {
     when (drawing) {
         is DrawShape.Circle -> {
@@ -145,6 +160,27 @@ fun DrawScope.drawImageDrawing(
                 end = Offset(rightX, rightY),
                 strokeWidth = drawing.strokeWidth,
                 cap = StrokeCap.Round
+            )
+        }
+
+        is DrawShape.NumberBadge -> {
+            drawCircle(
+                color = drawing.color,
+                center = drawing.center,
+                radius = drawing.radius,
+            )
+
+            val textLayoutResult = textMeasurer.measure(
+                text = drawing.number.toString(),
+                style = TextStyle(color = drawing.textColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            )
+            val textSize = textLayoutResult.size
+            drawText(
+                textLayoutResult = textLayoutResult,
+                topLeft = Offset(
+                    x = drawing.center.x - (textSize.width / 2),
+                    y = drawing.center.y - (textSize.height / 2)
+                )
             )
         }
 

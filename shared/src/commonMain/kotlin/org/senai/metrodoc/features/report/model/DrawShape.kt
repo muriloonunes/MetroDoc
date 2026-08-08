@@ -38,8 +38,18 @@ sealed interface DrawShape {
         val strokeWidth: Float = StrokeWidth.MEDIUM.value,
     ) : DrawShape
 
+    data class NumberBadge(
+        override val id: String = UUID.randomUUID().toString(),
+        val center: Offset,
+        val number: Int,
+        val color: Color = Color.Red,
+        val textColor: Color = Color.White,
+        val radius: Float = 24f,
+    ) : DrawShape
+
+
     data class ClearGroup(
         override val id: String = UUID.randomUUID().toString(),
         val shapes: List<DrawShape>,
-    ):DrawShape
+    ) : DrawShape
 }
