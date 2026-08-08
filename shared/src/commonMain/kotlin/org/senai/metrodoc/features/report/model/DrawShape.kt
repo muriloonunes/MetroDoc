@@ -8,12 +8,18 @@ import java.util.*
 sealed interface DrawShape {
     val id: String
 
+    enum class StrokeWidth(val value: Float) {
+        THIN(2f),
+        MEDIUM(4f),
+        THICK(6f)
+    }
+
     data class Circle(
         override val id: String = UUID.randomUUID().toString(),
         val topLeft: Offset,
         val size: Size,
         val color: Color = Color.Red,
-        val strokeWidth: Float = 2f,
+        val strokeWidth: Float = StrokeWidth.MEDIUM.value,
     ) : DrawShape
 
     data class Rectangle(
@@ -21,7 +27,7 @@ sealed interface DrawShape {
         val topLeft: Offset,
         val size: Size,
         val color: Color = Color.Red,
-        val strokeWidth: Float = 2f,
+        val strokeWidth: Float = StrokeWidth.MEDIUM.value,
     ) : DrawShape
 
     data class Arrow(
@@ -29,6 +35,11 @@ sealed interface DrawShape {
         val start: Offset,
         val end: Offset,
         val color: Color = Color.Red,
-        val strokeWidth: Float = 2f
+        val strokeWidth: Float = StrokeWidth.MEDIUM.value,
     ) : DrawShape
+
+    data class ClearGroup(
+        override val id: String = UUID.randomUUID().toString(),
+        val shapes: List<DrawShape>,
+    ):DrawShape
 }

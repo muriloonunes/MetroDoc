@@ -18,6 +18,7 @@ fun createDrawing(
     end: Offset,
     tool: ToolType,
     color: Color,
+    width: DrawShape.StrokeWidth,
     nextBadgeNumber: Int,
     isShiftPressed: Boolean,
 ): DrawShape? {
@@ -49,9 +50,9 @@ fun createDrawing(
             )
 
             if (tool == ToolType.CIRCLE) {
-                DrawShape.Circle(topLeft = topLeft, size = size, color = color)
+                DrawShape.Circle(topLeft = topLeft, size = size, color = color, strokeWidth = width.value)
             } else {
-                DrawShape.Rectangle(topLeft = topLeft, size = size, color = color)
+                DrawShape.Rectangle(topLeft = topLeft, size = size, color = color, strokeWidth = width.value)
             }
         }
 
@@ -77,7 +78,7 @@ fun createDrawing(
                 end
             }
 
-            DrawShape.Arrow(start = start, end = finalEnd, color = color)
+            DrawShape.Arrow(start = start, end = finalEnd, color = color, strokeWidth = width.value)
         }
 
     }
@@ -145,6 +146,9 @@ fun DrawScope.drawImageDrawing(
                 strokeWidth = drawing.strokeWidth,
                 cap = StrokeCap.Round
             )
+        }
+
+        is DrawShape.ClearGroup -> {
         }
     }
 }

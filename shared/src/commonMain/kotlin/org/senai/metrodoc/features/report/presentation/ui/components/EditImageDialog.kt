@@ -18,8 +18,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.isShiftPressed
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -64,13 +63,50 @@ fun EditImageDialog(
 
     var selectedTool by remember { mutableStateOf(ToolType.CIRCLE) }
     var currentColor by remember { mutableStateOf(Color.Red) }
+    var currentStrokeWidth by remember { mutableStateOf(DrawShape.StrokeWidth.MEDIUM) }
     val drawings = remember { mutableStateListOf<DrawShape>() }
+
+    val redoStack = remember { mutableStateListOf<DrawShape>() }
 
     var isShiftPressed by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    fun undo() {
+        if (drawings.isNotEmpty()) {
+            val lastItem = drawings.removeLast()
+
+            if (lastItem is DrawShape.ClearGroup) {
+                drawings.addAll(lastItem.shapes)
+                redoStack.add(lastItem)
+            } else {
+                redoStack.add(lastItem)
+            }
+        }
+    }
+
+    fun redo() {
+        if (redoStack.isNotEmpty()) {
+            val itemToRestore = redoStack.removeLast()
+
+            if (itemToRestore is DrawShape.ClearGroup) {
+                drawings.removeAll(itemToRestore.shapes)
+                drawings.add(itemToRestore)
+            } else {
+                drawings.add(itemToRestore)
+            }
+        }
+    }
+    fun clearAll() {
+        if (drawings.isNotEmpty() && drawings.none { it is DrawShape.ClearGroup }) {
+            val currentShapes = drawings.toList()
+            drawings.clear()
+            drawings.add(DrawShape.ClearGroup(shapes = currentShapes))
+            redoStack.clear()
+        }
     }
 
     Dialog(
@@ -127,6 +163,15 @@ fun EditImageDialog(
                         onColorSelected = {
                             currentColor = it
                         },
+                        currentStrokeWidth = currentStrokeWidth,
+                        onStrokeWidthSelected = {
+                            currentStrokeWidth = it
+                        },
+                        canUndo = drawings.isNotEmpty(),
+                        canRedo = redoStack.isNotEmpty(),
+                        onUndo = { undo() },
+                        onRedo = { redo() },
+                        onClearAll = { clearAll() },
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
@@ -171,6 +216,20 @@ fun EditImageDialog(
                         .focusable()
                         .onKeyEvent {
                             isShiftPressed = it.isShiftPressed
+
+                            if (it.type == KeyEventType.KeyDown && (it.isCtrlPressed || it.isMetaPressed)) {
+                                when (it.key) {
+                                    Key.Z -> {
+                                        undo()
+                                        return@onKeyEvent true
+                                    }
+                                    Key.Y -> {
+                                        redo()
+                                        return@onKeyEvent true
+                                    }
+                                }
+                            }
+
                             false
                         },
                     contentAlignment = Alignment.Center
@@ -251,10 +310,12 @@ fun EditImageDialog(
                                                                 end = end,
                                                                 tool = selectedTool,
                                                                 color = currentColor,
+                                                                width = currentStrokeWidth,
                                                                 nextBadgeNumber = drawings.size + 1,
                                                                 isShiftPressed = isShiftPressed,
                                                             )?.let { shape ->
                                                                 drawings.add(shape)
+                                                                redoStack.clear()
                                                             }
                                                         }
                                                         dragStartOffset = null
@@ -275,6 +336,7 @@ fun EditImageDialog(
                                                 end = end,
                                                 tool = selectedTool,
                                                 color = currentColor,
+                                                width = currentStrokeWidth,
                                                 isShiftPressed = isShiftPressed,
                                                 nextBadgeNumber = 0
                                             )
@@ -358,16 +420,26 @@ fun AnnotationToolbar(
     onToolSelected: (ToolType) -> Unit,
     currentColor: Color,
     onColorSelected: (Color) -> Unit,
+    currentStrokeWidth: DrawShape.StrokeWidth,
+    onStrokeWidthSelected: (DrawShape.StrokeWidth) -> Unit,
+    canUndo: Boolean,
+    onUndo: () -> Unit,
+    canRedo: Boolean,
+    onRedo: () -> Unit,
+    onClearAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showStrokeMenu by remember { mutableStateOf(false) }
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        tonalElevation = 0.dp
     ) {
         Row(
-            modifier = Modifier.padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TooltipBox(
@@ -378,23 +450,15 @@ fun AnnotationToolbar(
                 IconButton(
                     onClick = { onToolSelected(ToolType.CIRCLE) },
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (selectedTool == ToolType.CIRCLE) {
-                            MaterialTheme.colorScheme.surface
-                        } else {
-                            Color.Transparent
-                        },
-                        contentColor = if (selectedTool == ToolType.CIRCLE) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        containerColor = if (selectedTool == ToolType.CIRCLE) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (selectedTool == ToolType.CIRCLE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    modifier = Modifier.size(50.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.circle),
                         contentDescription = "Círculo",
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -407,23 +471,15 @@ fun AnnotationToolbar(
                 IconButton(
                     onClick = { onToolSelected(ToolType.SQUARE) },
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (selectedTool == ToolType.SQUARE) {
-                            MaterialTheme.colorScheme.surface
-                        } else {
-                            Color.Transparent
-                        },
-                        contentColor = if (selectedTool == ToolType.SQUARE) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        containerColor = if (selectedTool == ToolType.SQUARE) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (selectedTool == ToolType.SQUARE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    modifier = Modifier.size(50.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.rectangle),
-                        contentDescription = "Quadrado",
-                        modifier = Modifier.size(32.dp)
+                        contentDescription = "Retângulo",
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -436,29 +492,23 @@ fun AnnotationToolbar(
                 IconButton(
                     onClick = { onToolSelected(ToolType.ARROW) },
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (selectedTool == ToolType.ARROW) {
-                            MaterialTheme.colorScheme.surface
-                        } else {
-                            Color.Transparent
-                        },
-                        contentColor = if (selectedTool == ToolType.ARROW) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        containerColor = if (selectedTool == ToolType.ARROW) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (selectedTool == ToolType.ARROW) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    modifier = Modifier.size(50.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.arrow_outward),
                         contentDescription = "Seta",
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
             VerticalDivider(
-                modifier = Modifier.height(20.dp).padding(horizontal = 2.dp),
+                modifier = Modifier
+                    .height(20.dp)
+                    .padding(horizontal = 4.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
             )
 
@@ -467,12 +517,11 @@ fun AnnotationToolbar(
                 tooltip = { PlainTooltip { Text("Cor da marcação") } },
                 state = rememberTooltipState()
             ) {
-                //todo se possivel, trocar o color picker pra usar o dessa biblioteca https://github.com/skydoves/colorpicker-compose
                 IconButton(
                     onClick = {
                         showNativeColorPicker(currentColor, onColorSelected)
                     },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Box(
                         modifier = Modifier
@@ -482,6 +531,158 @@ fun AnnotationToolbar(
                     )
                 }
             }
+
+            Box {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                    tooltip = { PlainTooltip { Text("Espessura do traço") } },
+                    state = rememberTooltipState()
+                ) {
+                    IconButton(
+                        onClick = { showStrokeMenu = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.line_weight),
+                            contentDescription = "Espessura da marcação",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = showStrokeMenu,
+                    onDismissRequest = { showStrokeMenu = false },
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    ) {
+                        StrokeOptionButton(
+                            iconRes = Res.drawable.stroke_thin,
+                            label = "Fina",
+                            isSelected = currentStrokeWidth == DrawShape.StrokeWidth.THIN,
+                            onClick = {
+                                onStrokeWidthSelected(DrawShape.StrokeWidth.THIN)
+                                showStrokeMenu = false
+                            }
+                        )
+
+                        StrokeOptionButton(
+                            iconRes = Res.drawable.stroke_medium,
+                            label = "Média",
+                            isSelected = currentStrokeWidth == DrawShape.StrokeWidth.MEDIUM,
+                            onClick = {
+                                onStrokeWidthSelected(DrawShape.StrokeWidth.MEDIUM)
+                                showStrokeMenu = false
+                            }
+                        )
+
+                        StrokeOptionButton(
+                            iconRes = Res.drawable.stroke_thick,
+                            label = "Grossa",
+                            isSelected = currentStrokeWidth == DrawShape.StrokeWidth.THICK,
+                            onClick = {
+                                onStrokeWidthSelected(DrawShape.StrokeWidth.THICK)
+                                showStrokeMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            VerticalDivider(
+                modifier = Modifier
+                    .height(20.dp)
+                    .padding(horizontal = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+            )
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Desfazer") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = onUndo,
+                    enabled = canUndo,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.undo),
+                        contentDescription = "Desfazer (Ctrl+Z)",
+                        tint = if (canUndo) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = 0.38f
+                        ),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Refazer (Ctrl+Y)") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = onRedo,
+                    enabled = canRedo,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.redo),
+                        contentDescription = "Refazer",
+                        tint = if (canRedo) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = 0.38f
+                        ),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Limpar todas as marcações") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = onClearAll,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.clear_all),
+                        contentDescription = "Limpar tudo",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun StrokeOptionButton(
+    iconRes: org.jetbrains.compose.resources.DrawableResource,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        modifier = Modifier.size(32.dp)
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = label,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
