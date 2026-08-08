@@ -13,6 +13,22 @@ sealed interface DrawShape {
         val topLeft: Offset,
         val size: Size,
         val color: Color = Color.Red,
+        val strokeWidth: Float = 2f,
+    ) : DrawShape
+
+    data class Rectangle(
+        override val id: String = UUID.randomUUID().toString(),
+        val topLeft: Offset,
+        val size: Size,
+        val color: Color = Color.Red,
+        val strokeWidth: Float = 2f,
+    ) : DrawShape
+
+    data class Arrow(
+        override val id: String = UUID.randomUUID().toString(),
+        val start: Offset,
+        val end: Offset,
+        val color: Color = Color.Red,
         val strokeWidth: Float = 2f
     ) : DrawShape
 }
