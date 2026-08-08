@@ -46,6 +46,7 @@ kotlin {
 
             implementation(libs.nucleus.pdfium)
             implementation(libs.html.to.pdf)
+            implementation(libs.coil.compose)
         }
     }
 }

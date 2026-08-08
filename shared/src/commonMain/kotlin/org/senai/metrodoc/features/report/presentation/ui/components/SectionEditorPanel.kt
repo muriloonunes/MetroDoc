@@ -29,6 +29,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
+import org.senai.metrodoc.common.ui.MetroDocOutlinedIconButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
 import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportData
@@ -173,7 +174,8 @@ fun SectionEditorPanel(
             is ReportSection.Introducao -> {
                 IntroducaoSectionEditor(
                     introducao = section,
-                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
+                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) },
+                    onOpenEditImage = { imagePath -> onIntent(ReportCreatorIntent.OnEditClicked(imagePath)) }
                 )
             }
 
@@ -286,6 +288,7 @@ fun CustomizadaSectionEditor(
                                         }
                                     )
                                 }
+
                                 is ReportBlock.GaleriaImagem -> {
                                     GaleriaImagemBlocoEditor(
                                         block = bloco,
@@ -296,6 +299,7 @@ fun CustomizadaSectionEditor(
                                         }
                                     )
                                 }
+
                                 is ReportBlock.QuebraPagina -> {
 
                                 }
@@ -355,6 +359,7 @@ fun CustomizadaSectionEditor(
 fun IntroducaoSectionEditor(
     introducao: ReportSection.Introducao,
     onDataChanged: (ReportSection.Introducao) -> Unit,
+    onOpenEditImage: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -424,16 +429,38 @@ fun IntroducaoSectionEditor(
                     modifier = Modifier.weight(1f)
                 )
                 if (introducao.imagePath.isNotBlank()) {
-                    MetroDocOutlinedButton(
-                        onClick = { onDataChanged(introducao.copy(imagePath = "")) },
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(50.dp)
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                        tooltip = { PlainTooltip { Text("Remover imagem") } },
+                        state = rememberTooltipState()
                     ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.close),
-                            contentDescription = "Remover Imagem",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                        MetroDocOutlinedIconButton(
+                            onClick = { onDataChanged(introducao.copy(imagePath = "")) },
+                            modifier = Modifier.size(50.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.close),
+                                contentDescription = "Remover Imagem",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                        tooltip = { PlainTooltip { Text("Editar imagem") } },
+                        state = rememberTooltipState()
+                    ) {
+                        MetroDocOutlinedIconButton(
+                            onClick = {
+                                onOpenEditImage(introducao.imagePath)
+                            },
+                            modifier = Modifier.size(50.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.edit),
+                                contentDescription = "Editar Imagem",
+                            )
+                        }
                     }
                 }
             }

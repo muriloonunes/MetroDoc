@@ -210,6 +210,14 @@ class ReportCreatorViewModel(
                 _state.update { it.copy(reportName = intent.newName) }
             }
 
+            is ReportCreatorIntent.OnEditClicked -> {
+                _state.update { it.copy(showEditDialog = true, editImagePath = intent.imagePath) }
+            }
+
+            ReportCreatorIntent.OnEditDismissed -> {
+                _state.update { it.copy(showEditDialog = false, editImagePath = null) }
+            }
+
             ReportCreatorIntent.OnSaveProject -> {
                 _state.update { it.copy(reportSaveState = SavedState.Saving) }
                 viewModelScope.launch {

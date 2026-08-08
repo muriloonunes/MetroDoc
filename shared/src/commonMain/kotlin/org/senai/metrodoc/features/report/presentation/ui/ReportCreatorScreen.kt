@@ -108,8 +108,16 @@ fun ReportCreatorScreen(
             loadingMessage = "Gerando PDF",
             isCancelable = true,
             onCancelLoading = {
-                onIntent(ReportCreatorIntent.OnCancelGeneration)
+                onIntent(ReportCreatorIntent.OnEditDismissed)
             }
+        )
+    }
+
+    if (state.showEditDialog) {
+        EditImageDialog(
+            imagePath = state.editImagePath,
+            onDismissRequest = { onIntent(ReportCreatorIntent.OnEditDismissed) },
+            onConfirmEdit = { }
         )
     }
 
