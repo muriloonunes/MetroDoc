@@ -16,9 +16,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -32,17 +30,15 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
-import metrodoc.shared.generated.resources.Res
-import metrodoc.shared.generated.resources.close
-import metrodoc.shared.generated.resources.confirm
+import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocPrimaryButton
 import org.senai.metrodoc.features.report.model.DrawShape
+import org.senai.metrodoc.features.report.util.calculateFitRect
+import org.senai.metrodoc.features.report.util.createDrawing
+import org.senai.metrodoc.features.report.util.drawImageDrawing
 import java.io.File
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 enum class ToolType {
@@ -118,16 +114,30 @@ fun EditImageDialog(
                         )
                     }
 
-                    IconButton(
-                        onClick = onDismissRequest,
-                        modifier = Modifier.size(32.dp)
+                    AnnotationToolbar(
+                        selectedTool = selectedTool,
+                        onToolSelected = {
+                            selectedTool = it
+                            focusRequester.requestFocus()
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterEnd
                     ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.close),
-                            contentDescription = "Fechar",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        IconButton(
+                            onClick = onDismissRequest,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.close),
+                                contentDescription = "Fechar",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
 
@@ -198,18 +208,19 @@ fun EditImageDialog(
                                         .fillMaxSize(),
                                 )
 
-                                imageBounds?.let {bounds ->
+                                imageBounds?.let { bounds ->
                                     Canvas(
                                         modifier = Modifier
                                             .offset { IntOffset(bounds.left.roundToInt(), bounds.top.roundToInt()) }
                                             .size(
-                                                width = with (LocalDensity.current) { bounds.width.toDp() },
-                                                height = with (LocalDensity.current) { bounds.height.toDp() }
+                                                width = with(LocalDensity.current) { bounds.width.toDp() },
+                                                height = with(LocalDensity.current) { bounds.height.toDp() }
                                             )
                                             .clipToBounds()
                                             .pointerInput(selectedTool) {
                                                 detectDragGestures(
                                                     onDragStart = { offset ->
+                                                        focusRequester.requestFocus()
                                                         val clampedOffset = Offset(
                                                             x = offset.x.coerceIn(0f, bounds.width),
                                                             y = offset.y.coerceIn(0f, bounds.height)
@@ -332,83 +343,108 @@ fun EditImageDialog(
     }
 }
 
-private fun createDrawing(
-    start: Offset,
-    end: Offset,
-    tool: ToolType,
-    nextBadgeNumber: Int,
-    isShiftPressed: Boolean,
-): DrawShape? {
-    return when (tool) {
-        ToolType.CIRCLE -> {
-            val finalEnd = if (isShiftPressed) {
-                val dx = end.x - start.x
-                val dy = end.y - start.y
-                val sideLength = max(abs(dx), abs(dy))
-
-                val signX = if (dx < 0) -1f else 1f
-                val signY = if (dy < 0) -1f else 1f
-
-                Offset(
-                    x = start.x + (sideLength * signX),
-                    y = start.y + (sideLength * signY)
-                )
-            } else {
-                end
+@Composable
+fun AnnotationToolbar(
+    selectedTool: ToolType,
+    onToolSelected: (ToolType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Círculo") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = { onToolSelected(ToolType.CIRCLE) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTool == ToolType.CIRCLE) {
+                            MaterialTheme.colorScheme.surface
+                        } else {
+                            Color.Transparent
+                        },
+                        contentColor = if (selectedTool == ToolType.CIRCLE) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    ),
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.circle),
+                        contentDescription = "Círculo",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
 
-            val topLeft = Offset(
-                x = min(start.x, finalEnd.x),
-                y = min(start.y, finalEnd.y)
-            )
-            val size = Size(
-                width = abs(start.x - finalEnd.x),
-                height = abs(start.y - finalEnd.y)
-            )
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Retângulo") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = { onToolSelected(ToolType.SQUARE) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTool == ToolType.SQUARE) {
+                            MaterialTheme.colorScheme.surface
+                        } else {
+                            Color.Transparent
+                        },
+                        contentColor = if (selectedTool == ToolType.SQUARE) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    ),
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.rectangle),
+                        contentDescription = "Quadrado",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
 
-            DrawShape.Circle(topLeft = topLeft, size = size)
-        }
-
-        ToolType.ARROW -> {
-            null
-        }
-
-        ToolType.SQUARE -> {
-            null
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Seta") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = { onToolSelected(ToolType.ARROW) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTool == ToolType.ARROW) {
+                            MaterialTheme.colorScheme.surface
+                        } else {
+                            Color.Transparent
+                        },
+                        contentColor = if (selectedTool == ToolType.ARROW) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    ),
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.arrow_outward),
+                        contentDescription = "Seta",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
         }
     }
-}
-
-private fun DrawScope.drawImageDrawing(
-    drawing: DrawShape,
-) {
-    when (drawing) {
-        is DrawShape.Circle -> {
-            drawOval(
-                color = drawing.color,
-                topLeft = drawing.topLeft,
-                size = drawing.size,
-                style = Stroke(drawing.strokeWidth)
-            )
-        }
-    }
-}
-
-private fun calculateFitRect(srcSize: Size, dstSize: Size): Rect {
-    val srcAspect = srcSize.width / srcSize.height
-    val dstAspect = dstSize.width / dstSize.height
-
-    val scale = if (srcAspect > dstAspect) {
-        dstSize.width / srcSize.width
-    } else {
-        dstSize.height / srcSize.height
-    }
-
-    val scaledWidth = srcSize.width * scale
-    val scaledHeight = srcSize.height * scale
-
-    val left = (dstSize.width - scaledWidth) / 2f
-    val top = (dstSize.height - scaledHeight) / 2f
-
-    return Rect(left, top, left + scaledWidth, top + scaledHeight)
 }
