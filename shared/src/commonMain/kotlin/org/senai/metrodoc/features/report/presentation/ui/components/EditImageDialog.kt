@@ -11,9 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -21,7 +23,11 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
@@ -37,6 +43,7 @@ import java.io.File
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 enum class ToolType {
     ARROW,
@@ -55,6 +62,8 @@ fun EditImageDialog(
     var imageState by remember(imageModel) {
         mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty)
     }
+    var imageBounds by remember { mutableStateOf<Rect?>(null) }
+
     var selectedTool by remember { mutableStateOf(ToolType.CIRCLE) }
     val drawings = remember { mutableStateListOf<DrawShape>() }
 
@@ -169,65 +178,91 @@ fun EditImageDialog(
                         else -> {
                             var dragStartOffset by remember { mutableStateOf<Offset?>(null) }
                             var dragCurrentOffset by remember { mutableStateOf<Offset?>(null) }
-                            AsyncImage(
-                                model = imageModel,
-                                contentDescription = "Imagem a ser editada",
-                                contentScale = ContentScale.Fit,
-                                onState = { imageState = it },
+                            Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                            )
+                                    .onGloballyPositioned {
+                                        val containerSize = it.size.toSize()
 
-                            Canvas(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(selectedTool) {
-                                        detectDragGestures(
-                                            onDragStart = { offset ->
-                                                dragStartOffset = offset
-                                                dragCurrentOffset = offset
-                                            },
-                                            onDrag = { change, _ ->
-                                                dragCurrentOffset = change.position
-                                            },
-                                            onDragEnd = {
-                                                val start = dragStartOffset
-                                                val end = dragCurrentOffset
-
-                                                if (start != null && end != null) {
-                                                    createDrawing(
-                                                        start = start,
-                                                        end = end,
-                                                        tool = selectedTool,
-                                                        nextBadgeNumber = drawings.size + 1,
-                                                        isShiftPressed = isShiftPressed,
-                                                    )?.let { shape ->
-                                                        drawings.add(shape)
-                                                    }
-                                                }
-                                                dragStartOffset = null
-                                                dragCurrentOffset = null
-                                            }
-                                        )
+                                        imageState.painter?.intrinsicSize?.let { intrinsicSize ->
+                                            imageBounds = calculateFitRect(intrinsicSize, containerSize)
+                                        }
                                     }
                             ) {
-                                drawings.forEach { draw ->
-                                    drawImageDrawing(draw)
-                                }
+                                AsyncImage(
+                                    model = imageModel,
+                                    contentDescription = "Imagem a ser editada",
+                                    contentScale = ContentScale.Fit,
+                                    onState = { imageState = it },
+                                    modifier = Modifier
+                                        .fillMaxSize(),
+                                )
 
-                                val start = dragStartOffset
-                                val end = dragCurrentOffset
-                                if (start != null && end != null) {
-                                    val previewShape = createDrawing(
-                                        start = start,
-                                        end = end,
-                                        tool = selectedTool,
-                                        isShiftPressed = isShiftPressed,
-                                        nextBadgeNumber = 0
-                                    )
+                                imageBounds?.let {bounds ->
+                                    Canvas(
+                                        modifier = Modifier
+                                            .offset { IntOffset(bounds.left.roundToInt(), bounds.top.roundToInt()) }
+                                            .size(
+                                                width = with (LocalDensity.current) { bounds.width.toDp() },
+                                                height = with (LocalDensity.current) { bounds.height.toDp() }
+                                            )
+                                            .clipToBounds()
+                                            .pointerInput(selectedTool) {
+                                                detectDragGestures(
+                                                    onDragStart = { offset ->
+                                                        val clampedOffset = Offset(
+                                                            x = offset.x.coerceIn(0f, bounds.width),
+                                                            y = offset.y.coerceIn(0f, bounds.height)
+                                                        )
+                                                        dragStartOffset = clampedOffset
+                                                        dragCurrentOffset = clampedOffset
+                                                    },
+                                                    onDrag = { change, _ ->
+                                                        dragCurrentOffset = Offset(
+                                                            x = change.position.x.coerceIn(0f, bounds.width),
+                                                            y = change.position.y.coerceIn(0f, bounds.height)
+                                                        )
+                                                    },
+                                                    onDragEnd = {
+                                                        val start = dragStartOffset
+                                                        val end = dragCurrentOffset
 
-                                    if (previewShape != null) {
-                                        drawImageDrawing(previewShape)
+                                                        if (start != null && end != null) {
+                                                            createDrawing(
+                                                                start = start,
+                                                                end = end,
+                                                                tool = selectedTool,
+                                                                nextBadgeNumber = drawings.size + 1,
+                                                                isShiftPressed = isShiftPressed,
+                                                            )?.let { shape ->
+                                                                drawings.add(shape)
+                                                            }
+                                                        }
+                                                        dragStartOffset = null
+                                                        dragCurrentOffset = null
+                                                    }
+                                                )
+                                            }
+                                    ) {
+                                        drawings.forEach { draw ->
+                                            drawImageDrawing(draw)
+                                        }
+
+                                        val start = dragStartOffset
+                                        val end = dragCurrentOffset
+                                        if (start != null && end != null) {
+                                            val previewShape = createDrawing(
+                                                start = start,
+                                                end = end,
+                                                tool = selectedTool,
+                                                isShiftPressed = isShiftPressed,
+                                                nextBadgeNumber = 0
+                                            )
+
+                                            if (previewShape != null) {
+                                                drawImageDrawing(previewShape)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -357,4 +392,23 @@ private fun DrawScope.drawImageDrawing(
             )
         }
     }
+}
+
+private fun calculateFitRect(srcSize: Size, dstSize: Size): Rect {
+    val srcAspect = srcSize.width / srcSize.height
+    val dstAspect = dstSize.width / dstSize.height
+
+    val scale = if (srcAspect > dstAspect) {
+        dstSize.width / srcSize.width
+    } else {
+        dstSize.height / srcSize.height
+    }
+
+    val scaledWidth = srcSize.width * scale
+    val scaledHeight = srcSize.height * scale
+
+    val left = (dstSize.width - scaledWidth) / 2f
+    val top = (dstSize.height - scaledHeight) / 2f
+
+    return Rect(left, top, left + scaledWidth, top + scaledHeight)
 }
