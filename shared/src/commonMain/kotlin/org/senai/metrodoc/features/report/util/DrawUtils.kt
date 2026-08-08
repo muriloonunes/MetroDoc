@@ -3,17 +3,21 @@ package org.senai.metrodoc.features.report.util
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import org.senai.metrodoc.features.report.model.DrawShape
 import org.senai.metrodoc.features.report.presentation.ui.components.ToolType
+import javax.swing.JColorChooser
 import kotlin.math.*
 
 fun createDrawing(
     start: Offset,
     end: Offset,
     tool: ToolType,
+    color: Color,
     nextBadgeNumber: Int,
     isShiftPressed: Boolean,
 ): DrawShape? {
@@ -45,9 +49,9 @@ fun createDrawing(
             )
 
             if (tool == ToolType.CIRCLE) {
-                DrawShape.Circle(topLeft = topLeft, size = size)
+                DrawShape.Circle(topLeft = topLeft, size = size, color = color)
             } else {
-                DrawShape.Rectangle(topLeft = topLeft, size = size)
+                DrawShape.Rectangle(topLeft = topLeft, size = size, color = color)
             }
         }
 
@@ -73,7 +77,7 @@ fun createDrawing(
                 end
             }
 
-            DrawShape.Arrow(start = start, end = finalEnd)
+            DrawShape.Arrow(start = start, end = finalEnd, color = color)
         }
 
     }
@@ -162,4 +166,14 @@ fun calculateFitRect(srcSize: Size, dstSize: Size): Rect {
     val top = (dstSize.height - scaledHeight) / 2f
 
     return Rect(left, top, left + scaledWidth, top + scaledHeight)
+}
+
+fun showNativeColorPicker(currentColor: Color, onColorSelected: (Color) -> Unit) {
+    val initialAwtColor = java.awt.Color(currentColor.toArgb(), true)
+
+    val selectedAwtColor = JColorChooser.showDialog(null, "Escolha uma cor", initialAwtColor)
+
+    if (selectedAwtColor != null) {
+        onColorSelected(Color(selectedAwtColor.rgb))
+    }
 }

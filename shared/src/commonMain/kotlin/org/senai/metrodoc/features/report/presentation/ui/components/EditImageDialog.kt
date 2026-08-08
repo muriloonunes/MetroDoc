@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,6 +39,7 @@ import org.senai.metrodoc.features.report.model.DrawShape
 import org.senai.metrodoc.features.report.util.calculateFitRect
 import org.senai.metrodoc.features.report.util.createDrawing
 import org.senai.metrodoc.features.report.util.drawImageDrawing
+import org.senai.metrodoc.features.report.util.showNativeColorPicker
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -61,6 +63,7 @@ fun EditImageDialog(
     var imageBounds by remember { mutableStateOf<Rect?>(null) }
 
     var selectedTool by remember { mutableStateOf(ToolType.CIRCLE) }
+    var currentColor by remember { mutableStateOf(Color.Red) }
     val drawings = remember { mutableStateListOf<DrawShape>() }
 
     var isShiftPressed by remember { mutableStateOf(false) }
@@ -119,6 +122,10 @@ fun EditImageDialog(
                         onToolSelected = {
                             selectedTool = it
                             focusRequester.requestFocus()
+                        },
+                        currentColor = currentColor,
+                        onColorSelected = {
+                            currentColor = it
                         },
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
@@ -243,6 +250,7 @@ fun EditImageDialog(
                                                                 start = start,
                                                                 end = end,
                                                                 tool = selectedTool,
+                                                                color = currentColor,
                                                                 nextBadgeNumber = drawings.size + 1,
                                                                 isShiftPressed = isShiftPressed,
                                                             )?.let { shape ->
@@ -266,6 +274,7 @@ fun EditImageDialog(
                                                 start = start,
                                                 end = end,
                                                 tool = selectedTool,
+                                                color = currentColor,
                                                 isShiftPressed = isShiftPressed,
                                                 nextBadgeNumber = 0
                                             )
@@ -347,6 +356,8 @@ fun EditImageDialog(
 fun AnnotationToolbar(
     selectedTool: ToolType,
     onToolSelected: (ToolType) -> Unit,
+    currentColor: Color,
+    onColorSelected: (Color) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -356,7 +367,7 @@ fun AnnotationToolbar(
     ) {
         Row(
             modifier = Modifier.padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TooltipBox(
@@ -442,6 +453,32 @@ fun AnnotationToolbar(
                         painter = painterResource(Res.drawable.arrow_outward),
                         contentDescription = "Seta",
                         modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+
+            VerticalDivider(
+                modifier = Modifier.height(20.dp).padding(horizontal = 2.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+            )
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Cor da marcação") } },
+                state = rememberTooltipState()
+            ) {
+                //todo se possivel, trocar o color picker pra usar o dessa biblioteca https://github.com/skydoves/colorpicker-compose
+                IconButton(
+                    onClick = {
+                        showNativeColorPicker(currentColor, onColorSelected)
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(18.dp)
+                            .background(currentColor, shape = CircleShape)
+                            .border(1.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), CircleShape)
                     )
                 }
             }
