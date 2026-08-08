@@ -7,10 +7,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -19,7 +26,6 @@ import org.senai.metrodoc.common.ui.MetroDocPrimaryButton
 import org.senai.metrodoc.features.report.model.MeasurementData
 import org.senai.metrodoc.features.report.model.ReportData
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ReportDataDialog(
     onDismissRequest: () -> Unit,
@@ -31,6 +37,22 @@ fun ReportDataDialog(
     isValid: Boolean,
 ) {
     var pagina by remember { mutableIntStateOf(0) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(pagina) {
+        focusRequester.requestFocus()
+    }
+
+    val isPrimaryEnabled = pagina != 0 || isValid
+    val handlePrimaryClick = {
+        if (isPrimaryEnabled) {
+            if (pagina == 0) {
+                pagina = 1
+            } else {
+                onConfirmData()
+            }
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -43,6 +65,31 @@ fun ReportDataDialog(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
                 .fillMaxHeight(0.85f)
+                .focusRequester(focusRequester)
+                .focusTarget()
+                .onPreviewKeyEvent { keyEvent ->
+                    keyEvent.type == KeyEventType.KeyDown && when (keyEvent.key) {
+                        Key.Enter, Key.NumPadEnter -> {
+                            if (isPrimaryEnabled) {
+                                handlePrimaryClick()
+                                true
+                            } else {
+                                false
+                            }
+                        }
+
+                        Key.Escape -> {
+                            if (pagina == 1) {
+                                pagina = 0
+                            } else {
+                                onDismissRequest()
+                            }
+                            true
+                        }
+
+                        else -> false
+                    }
+                }
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
@@ -163,14 +210,8 @@ fun ReportDataDialog(
                             }
                         }
                         MetroDocPrimaryButton(
-                            onClick = {
-                                if (pagina == 0) {
-                                    pagina = 1
-                                } else {
-                                    onConfirmData()
-                                }
-                            },
-                            enabled = if (pagina == 0) isValid else true,
+                            onClick = handlePrimaryClick,
+                            enabled = isPrimaryEnabled,
                         ) {
                             Text(if (pagina == 0) "Continuar" else "Confirmar")
                         }
