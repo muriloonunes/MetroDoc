@@ -19,6 +19,7 @@ import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportBlock.Texto
 
@@ -149,7 +150,7 @@ fun GaleriaImagemBlocoEditor(
     ) { files ->
         if (!files.isNullOrEmpty()) {
             val novasImagens = files.map { file ->
-                ReportBlock.GaleriaImagem.Imagem(nome = file.name, path = file.path)
+                Imagem(nome = file.name, path = file.path)
             }
             onUpdate(block.copy(imagens = block.imagens + novasImagens))
         }
