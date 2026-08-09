@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,14 +20,17 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -49,6 +53,7 @@ enum class ToolType {
     CIRCLE,
     SQUARE,
     NUMBER,
+    TEXT
 }
 
 @Composable
@@ -71,6 +76,10 @@ fun EditImageDialog(
     val drawings = remember { mutableStateListOf<DrawShape>() }
     val redoStack = remember { mutableStateListOf<DrawShape>() }
     val textMeasurer = rememberTextMeasurer()
+
+    var activeTextEditor by remember { mutableStateOf<DrawShape.TextBox.TextEditState?>(null) }
+    var activeTextValue by remember { mutableStateOf("") }
+    val textFocusRequester = remember { FocusRequester() }
 
     var badgeNumber by remember { mutableIntStateOf(1) }
 
@@ -340,18 +349,43 @@ fun EditImageDialog(
                                                                 val end = dragCurrentOffset
 
                                                                 if (start != null && end != null) {
-                                                                    createDrawing(
-                                                                        start = start,
-                                                                        end = end,
-                                                                        tool = selectedTool,
-                                                                        color = currentColor,
-                                                                        textcolor = currentTextColor,
-                                                                        width = currentStrokeWidth,
-                                                                        nextBadgeNumber = badgeNumber,
-                                                                        isShiftPressed = isShiftPressed,
-                                                                    )?.let { shape ->
-                                                                        drawings.add(shape)
-                                                                        redoStack.clear()
+                                                                    if (selectedTool == ToolType.TEXT) {
+                                                                        val previewShape = createDrawing(
+                                                                            start = start,
+                                                                            end = end,
+                                                                            tool = selectedTool,
+                                                                            color = currentColor,
+                                                                            textcolor = currentTextColor,
+                                                                            width = currentStrokeWidth,
+                                                                            nextBadgeNumber = 0,
+                                                                            isShiftPressed = isShiftPressed
+                                                                        ) as? DrawShape.TextBox
+
+                                                                        if (previewShape != null && previewShape.size.width > 20f && previewShape.size.height > 20f) {
+                                                                            activeTextEditor =
+                                                                                DrawShape.TextBox.TextEditState(
+                                                                                    topLeft = previewShape.topLeft,
+                                                                                    size = previewShape.size,
+                                                                                    backgroundColor = previewShape.color,
+                                                                                    textColor = previewShape.textColor,
+                                                                                    strokeWidth = previewShape.strokeWidth
+                                                                                )
+                                                                            activeTextValue = ""
+                                                                        }
+                                                                    } else {
+                                                                        createDrawing(
+                                                                            start,
+                                                                            end,
+                                                                            selectedTool,
+                                                                            currentColor,
+                                                                            currentTextColor,
+                                                                            currentStrokeWidth,
+                                                                            badgeNumber++,
+                                                                            isShiftPressed
+                                                                        )?.let { shape ->
+                                                                            drawings.add(shape)
+                                                                            redoStack.clear()
+                                                                        }
                                                                     }
                                                                 }
                                                                 dragStartOffset = null
@@ -383,6 +417,76 @@ fun EditImageDialog(
                                             if (previewShape != null) {
                                                 drawImageDrawing(previewShape, textMeasurer)
                                             }
+                                        }
+                                    }
+                                    activeTextEditor?.let { editor ->
+                                        val density = LocalDensity.current
+                                        val offsetX = with(density) { (editor.topLeft.x + bounds.left).toDp() }
+                                        val offsetY = with(density) { (editor.topLeft.y + bounds.top).toDp() }
+                                        val width = with(density) { editor.size.width.toDp() }
+                                        val height = with(density) { editor.size.height.toDp() }
+
+                                        LaunchedEffect(editor) {
+                                            textFocusRequester.requestFocus()
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .offset(x = offsetX, y = offsetY)
+                                                .size(width, height)
+                                                .background(Color.Black.copy(alpha = 0.5f))
+                                                .border(1.dp, editor.backgroundColor)
+                                                .padding(8.dp)
+                                        ) {
+                                            BasicTextField(
+                                                value = activeTextValue,
+                                                onValueChange = { activeTextValue = it },
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .focusRequester(textFocusRequester)
+                                                    .onPreviewKeyEvent { keyEvent ->
+                                                        keyEvent.type == KeyEventType.KeyDown && when (keyEvent.key) {
+                                                            Key.Escape -> {
+                                                                activeTextEditor = null
+                                                                focusRequester.requestFocus()
+                                                                true
+                                                            }
+
+                                                            Key.Enter, Key.NumPadEnter -> {
+                                                                if (keyEvent.isCtrlPressed || keyEvent.isMetaPressed) {
+                                                                    if (activeTextValue.isNotBlank()) {
+                                                                        drawings.add(
+                                                                            DrawShape.TextBox(
+                                                                                text = activeTextValue,
+                                                                                topLeft = editor.topLeft,
+                                                                                size = editor.size,
+                                                                                color = editor.backgroundColor,
+                                                                                textColor = editor.textColor,
+                                                                                strokeWidth = editor.strokeWidth
+                                                                            )
+                                                                        )
+                                                                    }
+                                                                    activeTextEditor = null
+                                                                    focusRequester.requestFocus()
+                                                                }
+                                                                false
+                                                            }
+
+
+                                                            else -> false
+                                                        }
+                                                    },
+                                                textStyle = TextStyle(color = editor.textColor, fontSize = 16.sp),
+                                                cursorBrush = SolidColor(editor.textColor)
+                                            )
+                                            Text(
+                                                text = "Ctrl + Enter p/ salvar | Esc p/ cancelar",
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                fontSize = 10.sp,
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .offset(y = 24.dp) // Fica um pouco para baixo da caixa
+                                            )
                                         }
                                     }
                                 }
@@ -545,6 +649,7 @@ fun AnnotationToolbar(
                     )
                 }
             }
+
             TooltipBox(
                 positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
                 tooltip = { PlainTooltip { Text("Numeração") } },
@@ -561,6 +666,27 @@ fun AnnotationToolbar(
                     Icon(
                         painter = painterResource(Res.drawable.badge),
                         contentDescription = "Numeração",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Texto") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = { onToolSelected(ToolType.TEXT) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTool == ToolType.TEXT) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (selectedTool == ToolType.TEXT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.insert_text),
+                        contentDescription = "Texto",
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -593,28 +719,28 @@ fun AnnotationToolbar(
                 }
             }
 
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
-                tooltip = { PlainTooltip { Text("Cor do texto") } },
-                state = rememberTooltipState()
-            ) {
-                IconButton(
-                    onClick = {
-                        showNativeColorPicker(currentColor, onTextColorSelected)
-                    },
-                    modifier = Modifier.size(36.dp)
+            if (selectedTool == ToolType.TEXT || selectedTool == ToolType.NUMBER) {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                    tooltip = { PlainTooltip { Text("Cor do texto") } },
+                    state = rememberTooltipState()
                 ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.text_color),
-                        contentDescription = "Cor do texto",
-                        tint = currentTextColor,
-                        modifier = Modifier.size(20.dp)
-                            .border(width = 1.5.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    )
+                    IconButton(
+                        onClick = {
+                            showNativeColorPicker(currentTextColor, onTextColorSelected)
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.text_color),
+                            contentDescription = "Cor do texto",
+                            tint = currentTextColor,
+                            modifier = Modifier.size(20.dp)
+                                .border(width = 1.5.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
+                    }
                 }
             }
-
-
 
             Box {
                 TooltipBox(

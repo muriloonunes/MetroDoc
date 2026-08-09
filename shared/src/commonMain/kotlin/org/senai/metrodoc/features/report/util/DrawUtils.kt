@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -12,6 +13,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import org.senai.metrodoc.features.report.model.DrawShape
 import org.senai.metrodoc.features.report.presentation.ui.components.ToolType
@@ -93,6 +95,41 @@ fun createDrawing(
                 number = nextBadgeNumber,
                 color = color,
                 textColor = textcolor
+            )
+        }
+
+        ToolType.TEXT -> {
+            val finalEnd = if (isShiftPressed) {
+                val dx = end.x - start.x
+                val dy = end.y - start.y
+                val sideLength = max(abs(dx), abs(dy))
+
+                val signX = if (dx < 0) -1f else 1f
+                val signY = if (dy < 0) -1f else 1f
+
+                Offset(
+                    x = start.x + (sideLength * signX),
+                    y = start.y + (sideLength * signY)
+                )
+            } else {
+                end
+            }
+            val topLeft = Offset(
+                x = min(start.x, finalEnd.x),
+                y = min(start.y, finalEnd.y)
+            )
+            val size = Size(
+                width = abs(start.x - finalEnd.x),
+                height = abs(start.y - finalEnd.y)
+            )
+
+            DrawShape.TextBox(
+                text = "",
+                topLeft = topLeft,
+                size = size,
+                color = color,
+                textColor = textcolor,
+                strokeWidth = width.value
             )
         }
     }
@@ -182,6 +219,38 @@ fun DrawScope.drawImageDrawing(
                     y = drawing.center.y - (textSize.height / 2)
                 )
             )
+        }
+
+        is DrawShape.TextBox -> {
+            if (drawing.text.isEmpty()) {
+                drawRect(
+                    color = if (drawing.color.alpha < 0.5f) drawing.color.copy(alpha = 0.8f) else drawing.color,
+                    topLeft = drawing.topLeft,
+                    size = drawing.size,
+                    style = Stroke(
+                        width = drawing.strokeWidth,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                    )
+                )
+            } else {
+                drawRect(
+                    color = drawing.color,
+                    topLeft = drawing.topLeft,
+                    size = drawing.size
+                )
+
+                val safeWidth = (drawing.size.width - 16f).coerceAtLeast(0f)
+                val safeHeight = (drawing.size.height - 16f).coerceAtLeast(0f)
+
+                drawText(
+                    textMeasurer = textMeasurer,
+                    text = drawing.text,
+                    topLeft = Offset(drawing.topLeft.x + 8f, drawing.topLeft.y + 8f),
+                    style = TextStyle(color = drawing.textColor, fontSize = 20.sp),
+                    size = Size(safeWidth, safeHeight),
+                    overflow = TextOverflow.Clip
+                )
+            }
         }
 
         is DrawShape.ClearGroup -> {

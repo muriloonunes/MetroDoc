@@ -47,6 +47,23 @@ sealed interface DrawShape {
         val radius: Float = 24f,
     ) : DrawShape
 
+    data class TextBox(
+        override val id: String = UUID.randomUUID().toString(),
+        val text: String,
+        val topLeft: Offset,
+        val size: Size,
+        val color: Color = Color.White.copy(alpha = 0.8f),
+        val textColor: Color = Color.Black,
+        val strokeWidth: Float = StrokeWidth.MEDIUM.value,
+    ) : DrawShape {
+        data class TextEditState(
+            val topLeft: Offset,
+            val size: Size,
+            val backgroundColor: Color,
+            val textColor: Color,
+            val strokeWidth: Float
+        )
+    }
 
     data class ClearGroup(
         override val id: String = UUID.randomUUID().toString(),
