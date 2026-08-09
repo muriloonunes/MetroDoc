@@ -437,7 +437,7 @@ fun IntroducaoSectionEditor(
                         state = rememberTooltipState()
                     ) {
                         MetroDocOutlinedIconButton(
-                            onClick = { onDataChanged(introducao.copy(imagem = introducao.imagem.copy(path = ""))) },
+                            onClick = { onDataChanged(introducao.copy(imagem = Imagem(path = ""))) },
                             modifier = Modifier.size(50.dp)
                         ) {
                             Icon(
