@@ -1,5 +1,6 @@
 package org.senai.metrodoc.features.report.presentation
 
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.model.SavedState
@@ -24,7 +25,7 @@ data class ReportCreatorState(
     val isGeneratingPreview: Boolean = false,
     val reportSaveState: SavedState = SavedState.Unsaved,
     val showEditDialog: Boolean = false,
-    val editImagePath: String? = null,
+    val editingImage: Imagem? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -50,7 +51,7 @@ data class ReportCreatorState(
         if (secaoAtivaId != other.secaoAtivaId) return false
         if (!previewPdfBytes.contentEquals(other.previewPdfBytes)) return false
         if (reportSaveState != other.reportSaveState) return false
-        if (editImagePath != other.editImagePath) return false
+        if (editingImage != other.editingImage) return false
 
         return true
     }
@@ -74,9 +75,10 @@ data class ReportCreatorState(
         result = 31 * result + secaoAtivaId.hashCode()
         result = 31 * result + (previewPdfBytes?.contentHashCode() ?: 0)
         result = 31 * result + reportSaveState.hashCode()
-        result = 31 * result + editImagePath.hashCode()
+        result = 31 * result + editingImage.hashCode()
         return result
     }
+
 }
 
 sealed interface ReportCreatorIntent {
@@ -135,8 +137,11 @@ sealed interface ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
 
-    data class OnEditClicked(val imagePath: String?) : ReportCreatorIntent
+    data class OnEditClicked(val imagem: Imagem) : ReportCreatorIntent
     data object OnEditDismissed : ReportCreatorIntent
+    data class OnEditConfirmed(val updatedImagem: Imagem) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
 
     data object OnSaveProject : ReportCreatorIntent
 

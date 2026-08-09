@@ -9,10 +9,7 @@ import org.senai.metrodoc.common.data.RoomProjectRepository
 import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.common.util.PdfRenderEngine
 import org.senai.metrodoc.features.report.data.MemoryReportRepository
-import org.senai.metrodoc.features.report.model.MeasurementData
-import org.senai.metrodoc.features.report.model.ReportData
-import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.features.report.model.SavedState
+import org.senai.metrodoc.features.report.model.*
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect.OnPdfGenerated
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -211,11 +208,42 @@ class ReportCreatorViewModel(
             }
 
             is ReportCreatorIntent.OnEditClicked -> {
-                _state.update { it.copy(showEditDialog = true, editImagePath = intent.imagePath) }
+                _state.update { it.copy(showEditDialog = true, editingImage = intent.imagem) }
             }
 
             ReportCreatorIntent.OnEditDismissed -> {
-                _state.update { it.copy(showEditDialog = false, editImagePath = null) }
+                _state.update { it.copy(showEditDialog = false, editingImage = null) }
+            }
+
+            is ReportCreatorIntent.OnEditConfirmed -> {
+                _state.update {
+                    val updatedSections = it.secoes.map { section ->
+                        when (section) {
+                            is ReportSection.Introducao -> {
+                                if (section.imagem.id == intent.updatedImagem.id) {
+                                    section.copy(imagem = intent.updatedImagem)
+                                } else section
+                            }
+
+                            is ReportSection.Customizada -> {
+                                val updatedBlocks = section.blocos.map { block ->
+                                    if (block is ReportBlock.GaleriaImagem) {
+                                        val updatedImages = block.imagens.map { image ->
+                                            if (image.id == intent.updatedImagem.id) {
+                                                intent.updatedImagem
+                                            } else image
+                                        }
+                                        block.copy(imagens = updatedImages)
+                                    } else block
+                                }
+                                section.copy(blocos = updatedBlocks)
+                            }
+
+                            else -> section
+                        }
+                    }
+                    it.copy(showEditDialog = false, editingImage = null, secoes = updatedSections)
+                }
             }
 
             ReportCreatorIntent.OnSaveProject -> {

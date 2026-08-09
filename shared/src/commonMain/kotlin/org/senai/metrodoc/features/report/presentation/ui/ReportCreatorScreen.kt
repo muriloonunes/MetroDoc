@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
@@ -115,9 +116,13 @@ fun ReportCreatorScreen(
 
     if (state.showEditDialog) {
         EditImageDialog(
-            imagePath = state.editImagePath,
+            imagePath = state.editingImage?.path,
+            initialDrawings = state.editingImage?.drawings ?: emptyList(),
             onDismissRequest = { onIntent(ReportCreatorIntent.OnEditDismissed) },
-            onConfirmEdit = { }
+            onConfirmEdit = {
+                val updatedImage = state.editingImage?.copy(drawings = it) ?: Imagem(path = "", drawings = it)
+                onIntent(ReportCreatorIntent.OnEditConfirmed(updatedImage))
+            }
         )
     }
 

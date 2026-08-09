@@ -11,4 +11,5 @@ data class Imagem(
     val nome: String = "",
     val path: String,
     val legenda: String = "",
+    val drawings: List<DrawShape> = emptyList(),
 )

@@ -31,6 +31,7 @@ import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedIconButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
@@ -175,7 +176,7 @@ fun SectionEditorPanel(
                 IntroducaoSectionEditor(
                     introducao = section,
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) },
-                    onOpenEditImage = { imagePath -> onIntent(ReportCreatorIntent.OnEditClicked(imagePath)) }
+                    onOpenEditImage = { imagem -> onIntent(ReportCreatorIntent.OnEditClicked(imagem)) }
                 )
             }
 
@@ -359,7 +360,7 @@ fun CustomizadaSectionEditor(
 fun IntroducaoSectionEditor(
     introducao: ReportSection.Introducao,
     onDataChanged: (ReportSection.Introducao) -> Unit,
-    onOpenEditImage: (String?) -> Unit,
+    onOpenEditImage: (Imagem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -453,7 +454,7 @@ fun IntroducaoSectionEditor(
                     ) {
                         MetroDocOutlinedIconButton(
                             onClick = {
-                                onOpenEditImage(introducao.imagem.path)
+                                onOpenEditImage(introducao.imagem)
                             },
                             modifier = Modifier.size(50.dp)
                         ) {

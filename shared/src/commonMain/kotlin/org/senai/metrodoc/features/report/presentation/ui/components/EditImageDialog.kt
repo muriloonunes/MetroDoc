@@ -58,9 +58,10 @@ enum class ToolType {
 
 @Composable
 fun EditImageDialog(
-    onDismissRequest: () -> Unit,
     imagePath: String?,
-    onConfirmEdit: () -> Unit,
+    initialDrawings: List<DrawShape>,
+    onDismissRequest: () -> Unit,
+    onConfirmEdit: (List<DrawShape>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val imageModel = imagePath?.takeIf { it.isNotBlank() }?.let(::File)
@@ -73,7 +74,9 @@ fun EditImageDialog(
     var currentColor by remember { mutableStateOf(Color.Red) }
     var currentTextColor by remember { mutableStateOf(Color.White) }
     var currentStrokeWidth by remember { mutableStateOf(DrawShape.StrokeWidth.MEDIUM) }
-    val drawings = remember { mutableStateListOf<DrawShape>() }
+    val drawings = remember(initialDrawings) {
+        mutableStateListOf<DrawShape>().apply { addAll(initialDrawings) }
+    }
     val redoStack = remember { mutableStateListOf<DrawShape>() }
     val textMeasurer = rememberTextMeasurer()
 
@@ -537,7 +540,7 @@ fun EditImageDialog(
                     }
 
                     MetroDocPrimaryButton(
-                        onClick = onConfirmEdit,
+                        onClick = { onConfirmEdit(drawings.toList()) },
                         contentPadding = PaddingValues(
                             horizontal = 16.dp,
                             vertical = 6.dp

@@ -1,12 +1,10 @@
 package org.senai.metrodoc.common.database
 
-import androidx.room3.ConstructedBy
-import androidx.room3.Database
-import androidx.room3.RoomDatabase
-import androidx.room3.RoomDatabaseConstructor
+import androidx.room3.*
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import org.senai.metrodoc.common.database.dao.ProjectDao
+import org.senai.metrodoc.common.database.entity.DrawShapeConverters
 import org.senai.metrodoc.common.database.entity.MeasurementDataEntity
 import org.senai.metrodoc.common.database.entity.ReportDataEntity
 
@@ -17,6 +15,7 @@ import org.senai.metrodoc.common.database.entity.ReportDataEntity
     ], version = 1
 )
 @ConstructedBy(AppDatabaseConstructor::class)
+@ColumnTypeConverters(DrawShapeConverters::class)
 abstract class MetroDocDatabase : RoomDatabase() {
     abstract fun getProjectDao(): ProjectDao
 }
