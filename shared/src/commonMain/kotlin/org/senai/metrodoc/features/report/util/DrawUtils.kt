@@ -31,7 +31,7 @@ fun createDrawing(
     isShiftPressed: Boolean,
 ): DrawShape? {
     return when (tool) {
-        ToolType.CIRCLE, ToolType.SQUARE -> {
+        ToolType.CIRCLE, ToolType.SQUARE, ToolType.TEXT -> {
             val finalEnd = if (isShiftPressed) {
                 val dx = end.x - start.x
                 val dy = end.y - start.y
@@ -57,10 +57,23 @@ fun createDrawing(
                 height = abs(start.y - finalEnd.y)
             )
 
-            if (tool == ToolType.CIRCLE) {
-                DrawShape.Circle(topLeft = topLeft, size = size, color = color, strokeWidth = width.value)
-            } else {
-                DrawShape.Rectangle(topLeft = topLeft, size = size, color = color, strokeWidth = width.value)
+            when (tool) {
+                ToolType.CIRCLE -> {
+                    DrawShape.Circle(topLeft = topLeft, size = size, color = color, strokeWidth = width.value)
+                }
+                ToolType.SQUARE -> {
+                    DrawShape.Rectangle(topLeft = topLeft, size = size, color = color, strokeWidth = width.value)
+                }
+                else -> {
+                    DrawShape.TextBox(
+                        text = "",
+                        topLeft = topLeft,
+                        size = size,
+                        color = color,
+                        textColor = textcolor,
+                        strokeWidth = width.value
+                    )
+                }
             }
         }
 
@@ -98,39 +111,8 @@ fun createDrawing(
             )
         }
 
-        ToolType.TEXT -> {
-            val finalEnd = if (isShiftPressed) {
-                val dx = end.x - start.x
-                val dy = end.y - start.y
-                val sideLength = max(abs(dx), abs(dy))
-
-                val signX = if (dx < 0) -1f else 1f
-                val signY = if (dy < 0) -1f else 1f
-
-                Offset(
-                    x = start.x + (sideLength * signX),
-                    y = start.y + (sideLength * signY)
-                )
-            } else {
-                end
-            }
-            val topLeft = Offset(
-                x = min(start.x, finalEnd.x),
-                y = min(start.y, finalEnd.y)
-            )
-            val size = Size(
-                width = abs(start.x - finalEnd.x),
-                height = abs(start.y - finalEnd.y)
-            )
-
-            DrawShape.TextBox(
-                text = "",
-                topLeft = topLeft,
-                size = size,
-                color = color,
-                textColor = textcolor,
-                strokeWidth = width.value
-            )
+        ToolType.ERASER -> {
+            null
         }
     }
 }
@@ -253,8 +235,45 @@ fun DrawScope.drawImageDrawing(
             }
         }
 
-        is DrawShape.ClearGroup -> {
+        is DrawShape.ClearGroup, is DrawShape.Erased -> {
         }
+    }
+}
+
+fun isPointInsideShape(
+    clickOffset: Offset,
+    shape: DrawShape,
+): Boolean {
+    return when (shape) {
+        is DrawShape.Circle -> {
+            Rect(shape.topLeft, shape.size).contains(clickOffset)
+        }
+
+        is DrawShape.Rectangle -> {
+            Rect(shape.topLeft, shape.size).contains(clickOffset)
+        }
+
+        is DrawShape.TextBox -> {
+            Rect(shape.topLeft, shape.size).contains(clickOffset)
+        }
+
+        is DrawShape.Arrow -> {
+            val minX = min(shape.start.x, shape.end.x) - 10f
+            val maxX = max(shape.start.x, shape.end.x) + 10f
+            val minY = min(shape.start.y, shape.end.y) - 10f
+            val maxY = max(shape.start.y, shape.end.y) + 10f
+
+            clickOffset.x in minX..maxX && clickOffset.y in minY..maxY
+        }
+
+        is DrawShape.NumberBadge -> {
+            val dx = clickOffset.x - shape.center.x
+            val dy = clickOffset.y - shape.center.y
+            val distance = sqrt((dx * dx) + (dy * dy))
+            distance <= shape.radius
+        }
+
+        is DrawShape.ClearGroup, is DrawShape.Erased -> false
     }
 }
 

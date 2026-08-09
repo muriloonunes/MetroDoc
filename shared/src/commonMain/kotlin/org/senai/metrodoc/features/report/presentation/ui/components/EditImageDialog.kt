@@ -42,10 +42,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocPrimaryButton
 import org.senai.metrodoc.features.report.model.DrawShape
-import org.senai.metrodoc.features.report.util.calculateFitRect
-import org.senai.metrodoc.features.report.util.createDrawing
-import org.senai.metrodoc.features.report.util.drawImageDrawing
-import org.senai.metrodoc.features.report.util.showNativeColorPicker
+import org.senai.metrodoc.features.report.util.*
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -54,7 +51,8 @@ enum class ToolType {
     CIRCLE,
     SQUARE,
     NUMBER,
-    TEXT
+    TEXT,
+    ERASER
 }
 
 @Composable
@@ -98,24 +96,41 @@ fun EditImageDialog(
         if (drawings.isNotEmpty()) {
             val lastItem = drawings.removeLast()
 
-            if (lastItem is DrawShape.ClearGroup) {
-                drawings.addAll(lastItem.shapes)
-                redoStack.add(lastItem)
-            } else {
-                redoStack.add(lastItem)
+            when (lastItem) {
+                is DrawShape.ClearGroup -> {
+                    drawings.addAll(lastItem.shapes)
+                    redoStack.add(lastItem)
+                }
+
+                is DrawShape.Erased -> {
+                    val targetIndex = lastItem.index.coerceAtMost(drawings.size)
+                    drawings.add(targetIndex, lastItem.shape)
+                    redoStack.add(lastItem)
+                }
+
+                else -> {
+                    redoStack.add(lastItem)
+                }
             }
         }
     }
 
     fun redo() {
         if (redoStack.isNotEmpty()) {
-            val itemToRestore = redoStack.removeLast()
+            when (val itemToRestore = redoStack.removeLast()) {
+                is DrawShape.ClearGroup -> {
+                    drawings.removeAll(itemToRestore.shapes)
+                    drawings.add(itemToRestore)
+                }
 
-            if (itemToRestore is DrawShape.ClearGroup) {
-                drawings.removeAll(itemToRestore.shapes)
-                drawings.add(itemToRestore)
-            } else {
-                drawings.add(itemToRestore)
+                is DrawShape.Erased -> {
+                    drawings.remove(itemToRestore.shape)
+                    drawings.add(itemToRestore)
+                }
+
+                else -> {
+                    drawings.add(itemToRestore)
+                }
             }
         }
     }
@@ -331,6 +346,27 @@ fun EditImageDialog(
                                                         )
                                                     }
 
+                                                    ToolType.ERASER -> {
+                                                        detectTapGestures(
+                                                            onTap = { offset ->
+                                                                val index = drawings.indexOfLast { shape ->
+                                                                    if (shape is DrawShape.Erased || shape is DrawShape.ClearGroup) false
+                                                                    else isPointInsideShape(offset, shape)
+                                                                }
+                                                                if (index != -1) {
+                                                                    val removedShape = drawings.removeAt(index)
+                                                                    drawings.add(
+                                                                        DrawShape.Erased(
+                                                                            shape = removedShape,
+                                                                            index = index
+                                                                        )
+                                                                    )
+                                                                    redoStack.clear()
+                                                                }
+                                                            }
+                                                        )
+                                                    }
+
                                                     else -> {
                                                         detectDragGestures(
                                                             onDragStart = { offset ->
@@ -489,7 +525,7 @@ fun EditImageDialog(
                                                 fontSize = 10.sp,
                                                 modifier = Modifier
                                                     .align(Alignment.BottomEnd)
-                                                    .offset(y = 24.dp) // Fica um pouco para baixo da caixa
+                                                    .offset(y = 24.dp)
                                             )
                                         }
                                     }
@@ -696,6 +732,27 @@ fun AnnotationToolbar(
                     Icon(
                         painter = painterResource(Res.drawable.insert_text),
                         contentDescription = "Texto",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = { PlainTooltip { Text("Borracha") } },
+                state = rememberTooltipState()
+            ) {
+                IconButton(
+                    onClick = { onToolSelected(ToolType.ERASER) },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = if (selectedTool == ToolType.ERASER) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (selectedTool == ToolType.ERASER) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.eraser),
+                        contentDescription = "Borracha",
                         modifier = Modifier.size(20.dp)
                     )
                 }

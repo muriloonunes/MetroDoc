@@ -81,4 +81,11 @@ sealed interface DrawShape {
         override val id: String = UUID.randomUUID().toString(),
         val shapes: List<DrawShape>,
     ) : DrawShape
+
+    @Serializable
+    data class Erased(
+        override val id: String = UUID.randomUUID().toString(),
+        val shape: DrawShape,
+        val index: Int
+    ): DrawShape
 }
