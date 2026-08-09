@@ -77,9 +77,20 @@ object ReportHtmlTemplate {
 
 //                    val imgBase64 =
 //                        if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
+                    val imgSecao = secao.imagem
                     val imgBase64 =
-                        if (secao.imagem.path.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagem.path) else null
-                    val legendaImagem = secao.imagem.legenda.toHtmlText()
+                        if (imgSecao.path.isNotBlank()) {
+                            if (imgSecao.drawings.isEmpty()) {
+                                ResourceUtils.localFileToBase64(imgSecao.path)
+                            } else {
+                                ResourceUtils.localImageWithDrawingsToBase64(
+                                    path = imgSecao.path,
+                                    drawings = imgSecao.drawings,
+                                    uiCanvasSize = imgSecao.canvasSize
+                                )
+                            }
+                        } else null
+                    val legendaImagem = imgSecao.legenda.toHtmlText()
                     val primeiraLinhaHtml = if (!imgBase64.isNullOrBlank()) {
                         """
                             <td colspan="2" style="width: 50%;">

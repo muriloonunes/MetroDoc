@@ -19,6 +19,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
@@ -61,7 +62,7 @@ fun EditImageDialog(
     imagePath: String?,
     initialDrawings: List<DrawShape>,
     onDismissRequest: () -> Unit,
-    onConfirmEdit: (List<DrawShape>) -> Unit,
+    onConfirmEdit: (List<DrawShape>, canvasSize: Size) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val imageModel = imagePath?.takeIf { it.isNotBlank() }?.let(::File)
@@ -540,7 +541,12 @@ fun EditImageDialog(
                     }
 
                     MetroDocPrimaryButton(
-                        onClick = { onConfirmEdit(drawings.toList()) },
+                        onClick = {
+                            onConfirmEdit(
+                                drawings.toList(),
+                                imageState.painter?.intrinsicSize ?: Size.Zero
+                            )
+                        },
                         contentPadding = PaddingValues(
                             horizontal = 16.dp,
                             vertical = 6.dp

@@ -119,8 +119,8 @@ fun ReportCreatorScreen(
             imagePath = state.editingImage?.path,
             initialDrawings = state.editingImage?.drawings ?: emptyList(),
             onDismissRequest = { onIntent(ReportCreatorIntent.OnEditDismissed) },
-            onConfirmEdit = {
-                val updatedImage = state.editingImage?.copy(drawings = it) ?: Imagem(path = "", drawings = it)
+            onConfirmEdit = { drawings, size ->
+                val updatedImage = state.editingImage?.copy(drawings = drawings, canvasSize = size) ?: Imagem(path = "")
                 onIntent(ReportCreatorIntent.OnEditConfirmed(updatedImage))
             }
         )
