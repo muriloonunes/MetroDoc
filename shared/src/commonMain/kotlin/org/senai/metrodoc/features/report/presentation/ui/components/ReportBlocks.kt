@@ -141,6 +141,7 @@ fun TextoBlocoEditor(
 @Composable
 fun GaleriaImagemBlocoEditor(
     block: ReportBlock.GaleriaImagem,
+    onEdit: (Imagem) -> Unit,
     onUpdate: (ReportBlock.GaleriaImagem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -256,6 +257,18 @@ fun GaleriaImagemBlocoEditor(
                                 },
                                 modifier = Modifier.weight(1.5f)
                             )
+                            IconButton(
+                                onClick = {
+                                    onEdit(imagem)
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.edit),
+                                    contentDescription = "Remover Foto",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                             IconButton(
                                 onClick = {
                                     val listaAtualizada = block.imagens.toMutableList()

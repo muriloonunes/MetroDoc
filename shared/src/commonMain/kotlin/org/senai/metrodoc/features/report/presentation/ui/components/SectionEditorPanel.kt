@@ -212,6 +212,7 @@ fun SectionEditorPanel(
             is ReportSection.Customizada -> {
                 CustomizadaSectionEditor(
                     section = section,
+                    onEditImageClick = {onIntent(ReportCreatorIntent.OnEditClicked(it))},
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
                 )
             }
@@ -222,6 +223,7 @@ fun SectionEditorPanel(
 @Composable
 fun CustomizadaSectionEditor(
     section: ReportSection.Customizada,
+    onEditImageClick: (Imagem) -> Unit,
     onDataChanged: (ReportSection.Customizada) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -293,6 +295,9 @@ fun CustomizadaSectionEditor(
                                 is ReportBlock.GaleriaImagem -> {
                                     GaleriaImagemBlocoEditor(
                                         block = bloco,
+                                        onEdit = {
+                                            onEditImageClick(it)
+                                        },
                                         onUpdate = {
                                             val list = section.blocos.toMutableList()
                                             list[index] = it

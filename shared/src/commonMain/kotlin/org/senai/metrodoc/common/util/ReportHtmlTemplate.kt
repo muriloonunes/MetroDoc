@@ -265,7 +265,15 @@ object ReportHtmlTemplate {
                                                     1
                                                 }
                                                 val srcImage = if (imagem.path.isNotBlank()) {
-                                                    ResourceUtils.localFileToBase64(imagem.path)
+                                                    if (imagem.drawings.isNotEmpty()) {
+                                                        ResourceUtils.localImageWithDrawingsToBase64(
+                                                            path = imagem.path,
+                                                            drawings = imagem.drawings,
+                                                            uiCanvasSize = imagem.canvasSize
+                                                        )
+                                                    } else {
+                                                        ResourceUtils.localFileToBase64(imagem.path)
+                                                    }
                                                 } else {
                                                     ""
                                                 }
