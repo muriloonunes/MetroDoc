@@ -75,9 +75,11 @@ object ReportHtmlTemplate {
                             .replace("{{SUB_TEXTO}}", it.texto.toHtmlText())
                     }
 
+//                    val imgBase64 =
+//                        if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
                     val imgBase64 =
-                        if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
-                    val legendaImagem = secao.imagemLegenda.toHtmlText()
+                        if (secao.imagem.path.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagem.path) else null
+                    val legendaImagem = secao.imagem.legenda.toHtmlText()
                     val primeiraLinhaHtml = if (!imgBase64.isNullOrBlank()) {
                         """
                             <td colspan="2" style="width: 50%;">

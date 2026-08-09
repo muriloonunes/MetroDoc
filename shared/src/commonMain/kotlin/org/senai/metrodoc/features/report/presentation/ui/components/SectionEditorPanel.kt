@@ -367,7 +367,8 @@ fun IntroducaoSectionEditor(
         type = FileKitType.Image
     ) { file ->
         file?.let {
-            onDataChanged(introducao.copy(imagePath = it.path))
+//            onDataChanged(introducao.copy(imagePath = it.path))
+            onDataChanged(introducao.copy(imagem = introducao.imagem.copy(path = it.path)))
         }
     }
     Box(modifier = modifier.fillMaxSize()) {
@@ -425,17 +426,17 @@ fun IntroducaoSectionEditor(
             ) {
                 MetroDocAddButton(
                     onClick = { imageLauncher.launch() },
-                    text = if (introducao.imagePath.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
+                    text = if (introducao.imagem.path.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
                     modifier = Modifier.weight(1f)
                 )
-                if (introducao.imagePath.isNotBlank()) {
+                if (introducao.imagem.path.isNotBlank()) {
                     TooltipBox(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
                         tooltip = { PlainTooltip { Text("Remover imagem") } },
                         state = rememberTooltipState()
                     ) {
                         MetroDocOutlinedIconButton(
-                            onClick = { onDataChanged(introducao.copy(imagePath = "")) },
+                            onClick = { onDataChanged(introducao.copy(imagem = introducao.imagem.copy(path = ""))) },
                             modifier = Modifier.size(50.dp)
                         ) {
                             Icon(
@@ -452,7 +453,7 @@ fun IntroducaoSectionEditor(
                     ) {
                         MetroDocOutlinedIconButton(
                             onClick = {
-                                onOpenEditImage(introducao.imagePath)
+                                onOpenEditImage(introducao.imagem.path)
                             },
                             modifier = Modifier.size(50.dp)
                         ) {
@@ -467,10 +468,10 @@ fun IntroducaoSectionEditor(
             MetroDocTextField(
                 label = "Legenda da Imagem",
                 placeholder = "Peça em medição na MMC",
-                value = introducao.imagemLegenda,
-                enabled = introducao.imagePath.isNotBlank(),
-                isRequired = introducao.imagePath.isNotBlank(),
-                onValueChange = { onDataChanged(introducao.copy(imagemLegenda = it)) },
+                value = introducao.imagem.legenda,
+                enabled = introducao.imagem.path.isNotBlank(),
+                isRequired = introducao.imagem.path.isNotBlank(),
+                onValueChange = { onDataChanged(introducao.copy(imagem = introducao.imagem.copy(legenda = it))) },
                 modifier = Modifier.fillMaxWidth()
             )
             HorizontalDivider(
