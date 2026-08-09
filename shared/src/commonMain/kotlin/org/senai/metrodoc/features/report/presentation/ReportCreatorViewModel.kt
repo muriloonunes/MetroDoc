@@ -125,7 +125,7 @@ class ReportCreatorViewModel(
             }
 
             ReportCreatorIntent.OnBackClicked -> {
-                if (_state.value.reportSaveState == SavedState.Saved) {
+                if (_state.value.reportSaveState == SavedState.Saved || _state.value.reportSaveState == SavedState.JustSaved) {
                     viewModelScope.launch {
                         _effect.send(ReportCreatorEffect.NavigateBack)
                     }
