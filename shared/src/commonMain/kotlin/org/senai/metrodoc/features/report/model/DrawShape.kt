@@ -76,6 +76,7 @@ sealed interface DrawShape {
         )
     }
 
+    @Serializable
     data class ClearGroup(
         override val id: String = UUID.randomUUID().toString(),
         val shapes: List<DrawShape>,
