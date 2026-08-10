@@ -18,6 +18,7 @@ val appModule = module {
     singleOf(::PdfParser)
 
     single { get<MetroDocDatabase>().getProjectDao() }
+    single { get<MetroDocDatabase>().getVersionDao() }
 
     singleOf(::InMemoryMemoryReportRepository) bind MemoryReportRepository::class
     singleOf(::RoomProjectRepositoryImpl) bind RoomProjectRepository::class

@@ -25,7 +25,7 @@ import java.io.File
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun PDFViewer(
+fun PdfViewer(
     pdfPath: String,
     cachedBytes: ByteArray?,
     targetPage: Int? = null,

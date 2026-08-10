@@ -19,7 +19,7 @@ import dev.nucleusframework.pdfium.rememberPdfReaderState
 import kotlinx.coroutines.delay
 import org.senai.metrodoc.common.util.PdfParser
 import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.features.report.presentation.ui.PDFViewer
+import org.senai.metrodoc.features.report.presentation.ui.PdfViewer
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -56,7 +56,7 @@ fun PdfPreviewer(
                     }
                 }
 
-                PDFViewer(
+                PdfViewer(
                     pdfPath = previewId,
                     cachedBytes = previewData,
                     targetPage = targetPage,

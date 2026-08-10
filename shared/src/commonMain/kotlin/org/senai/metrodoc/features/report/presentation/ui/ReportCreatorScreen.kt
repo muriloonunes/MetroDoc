@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import metrodoc.shared.generated.resources.Res
+import metrodoc.shared.generated.resources.change_history
+import metrodoc.shared.generated.resources.original_pdf
+import metrodoc.shared.generated.resources.preview
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
 import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
@@ -34,9 +41,13 @@ import org.senai.metrodoc.features.report.presentation.ReportCreatorState
 import org.senai.metrodoc.features.report.presentation.ui.components.*
 import java.awt.Cursor
 
-enum class RightPanelTab {
-    PREVIEW,
-    PDF_ORIGINAL
+enum class RightPanelTab(
+    val text: String,
+    val res: DrawableResource
+) {
+    PREVIEW("Preview", Res.drawable.preview),
+    PDF_ORIGINAL("PDF Original", Res.drawable.original_pdf),
+    VERSIONS("Versões", Res.drawable.change_history)
 }
 
 @Composable
@@ -170,12 +181,17 @@ fun ReportCreatorScreen(
                     sidebarWidth = (sidebarWidth + delta.dp).coerceIn(minSideBarWidth, maxSideBarWidth)
                 }
 
-                val remainingWidth = totalWidth - sidebarWidth - 12.dp
+                val remainingWidth = totalWidth - sidebarWidth - 6.dp
 
-                Row(modifier = Modifier.width(remainingWidth).fillMaxHeight()) {
+                Row(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    val editorModifier = if (state.abaDireitaAtiva != null) {
+                        Modifier.width(remainingWidth * editorPanelRatio)
+                    } else {
+                        Modifier.weight(1f)
+                    }
+
                     Box(
-                        modifier = Modifier
-                            .width(remainingWidth * editorPanelRatio)
+                        modifier = editorModifier
                             .fillMaxHeight()
                             .padding(16.dp)
                     ) {
@@ -195,57 +211,88 @@ fun ReportCreatorScreen(
                             )
                         }
                     }
-                    ResizingDivider(
-                        onDrag = { delta ->
-                            val deltaRatio = delta / remainingWidth.value
-                            editorPanelRatio = (editorPanelRatio + deltaRatio).coerceIn(0.3f, 0.7f)
-                        }
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                    ) {
-                        SecondaryTabRow(
-                            selectedTabIndex = state.abaDireitaAtiva.ordinal,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Tab(
-                                selected = state.abaDireitaAtiva == RightPanelTab.PREVIEW,
-                                onClick = { onIntent(ReportCreatorIntent.OnTabChange(RightPanelTab.PREVIEW)) },
-                                text = { Text("Preview") }
-                            )
-                            Tab(
-                                selected = state.abaDireitaAtiva == RightPanelTab.PDF_ORIGINAL,
-                                onClick = { onIntent(ReportCreatorIntent.OnTabChange(RightPanelTab.PDF_ORIGINAL)) },
-                                text = { Text("PDF Original") }
-                            )
-                        }
-
-                        Box(
+                    if (state.abaDireitaAtiva != null) {
+                        ResizingDivider(
+                            onDrag = { delta ->
+                                val deltaRatio = delta / remainingWidth.value
+                                editorPanelRatio = (editorPanelRatio + deltaRatio).coerceIn(0.3f, 0.7f)
+                            }
+                        )
+                        Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth()
-                                .padding(16.dp)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                         ) {
-                            when (state.abaDireitaAtiva) {
-                                RightPanelTab.PREVIEW -> {
-                                    PdfPreviewer(
-                                        previewData = state.previewPdfBytes,
-                                        isGenerating = state.isGeneratingPreview,
-                                        secoes = state.secoes,
-                                        secaoAtivaId = state.secaoAtivaId,
-                                    )
-                                }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    text = state.abaDireitaAtiva.text,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                                RightPanelTab.PDF_ORIGINAL -> {
-                                    PDFViewer(
-                                        pdfPath = state.pdfPath,
-                                        cachedBytes = state.pdf[state.pdfPath],
-                                        onBytesLoaded = { path, bytes ->
-                                            onIntent(ReportCreatorIntent.OnPdfLoaded(path, bytes))
-                                        }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                when (state.abaDireitaAtiva) {
+                                    RightPanelTab.PREVIEW -> {
+                                        PdfPreviewer(
+                                            previewData = state.previewPdfBytes,
+                                            isGenerating = state.isGeneratingPreview,
+                                            secoes = state.secoes,
+                                            secaoAtivaId = state.secaoAtivaId,
+                                        )
+                                    }
+
+                                    RightPanelTab.PDF_ORIGINAL -> {
+                                        PdfViewer(
+                                            pdfPath = state.pdfPath,
+                                            cachedBytes = state.pdf[state.pdfPath],
+                                            onBytesLoaded = { path, bytes ->
+                                                onIntent(ReportCreatorIntent.OnPdfLoaded(path, bytes))
+                                            }
+                                        )
+                                    }
+
+                                    RightPanelTab.VERSIONS -> {
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                    ) {
+                        RightPanelTab.entries.forEach { tab ->
+                            val selected = state.abaDireitaAtiva == tab
+                            TooltipBox(
+                                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(positioning = TooltipAnchorPosition.Left),
+                                tooltip = { PlainTooltip { Text(tab.text) } },
+                                state = rememberTooltipState(),
+                            ) {
+                                FilledIconToggleButton(
+                                    checked = selected,
+                                    onCheckedChange = {
+                                        val newTab = if (selected) null else tab
+                                        onIntent(ReportCreatorIntent.OnTabChange(newTab))
+                                    },
+                                    shape = RoundedCornerShape(6.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(tab.res),
+                                        contentDescription = tab.name,
                                     )
                                 }
                             }

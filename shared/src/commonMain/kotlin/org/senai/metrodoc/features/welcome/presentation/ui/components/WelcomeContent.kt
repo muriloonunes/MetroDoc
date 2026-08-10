@@ -36,11 +36,9 @@ import metrodoc.shared.generated.resources.add
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.database.dto.ProjectDto
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
+import org.senai.metrodoc.common.util.toDateTimeString
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -207,10 +205,7 @@ fun WelcomeContent(
                         modifier = Modifier.fillMaxSize().padding(end = 12.dp)
                     ) {
                         items(projetosRecentes) { projeto ->
-                            val data = Instant
-                                .ofEpochMilli(projeto.modificadoEm)
-                                .atZone(ZoneId.systemDefault())
-                                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                            val data = projeto.modificadoEm.toDateTimeString()
                             RecentProjectCard(
                                 projectName = projeto.nomeProjeto,
                                 lastModified = data,

@@ -2,8 +2,10 @@ package org.senai.metrodoc.common.database.entity
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "reports")
+@Serializable
 data class ReportDataEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val nomeRelatorio: String,

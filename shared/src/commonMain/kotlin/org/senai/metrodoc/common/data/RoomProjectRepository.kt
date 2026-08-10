@@ -2,11 +2,14 @@ package org.senai.metrodoc.common.data
 
 import kotlinx.coroutines.flow.Flow
 import org.senai.metrodoc.common.database.dao.ProjectDao
+import org.senai.metrodoc.common.database.dao.VersionDao
 import org.senai.metrodoc.common.database.dto.FullProject
 import org.senai.metrodoc.common.database.dto.ProjectDto
+import org.senai.metrodoc.common.database.entity.VersionEntity
 import org.senai.metrodoc.common.mapper.metroDocJson
 import org.senai.metrodoc.common.mapper.toDomain
 import org.senai.metrodoc.common.mapper.toEntity
+import org.senai.metrodoc.common.util.toVersionName
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 
@@ -30,7 +33,8 @@ interface RoomProjectRepository {
 }
 
 class RoomProjectRepositoryImpl(
-    private val projectDao: ProjectDao
+    private val projectDao: ProjectDao,
+    private val versionDao: VersionDao,
 ) : RoomProjectRepository {
     override fun getRecentProjects(): Flow<List<ProjectDto>> {
         return projectDao.getProjectsSummaries()
@@ -84,7 +88,21 @@ class RoomProjectRepositoryImpl(
 
         val measurementEntities = reportData.caracteristicas.map { it.toEntity(0) }
 
-        return projectDao.saveFullProject(reportEntity, measurementEntities)
+        val projetoSalvoId = projectDao.saveFullProject(reportEntity, measurementEntities)
+
+        val projetoJson = metroDocJson.encodeToString(projectDao.getProjectById(projetoSalvoId))
+
+        val versao = VersionEntity(
+            id = 0,
+            projectId = projetoSalvoId,
+            versionName = System.currentTimeMillis().toVersionName(),
+            createdAt = System.currentTimeMillis(),
+            contentJson = projetoJson
+        )
+
+        versionDao.insertVersion(versao)
+
+        return projetoSalvoId
     }
 
     override suspend fun deleteProjectById(projectId: Long) {

@@ -16,7 +16,7 @@ data class ReportCreatorState(
     val zoomFactor: Float = 1.0f,
     val errorMessage: String? = null,
     val currentReport: ReportData? = null,
-    val abaDireitaAtiva: RightPanelTab = RightPanelTab.PREVIEW,
+    val abaDireitaAtiva: RightPanelTab? = RightPanelTab.PREVIEW,
     val secoes: List<ReportSection> = emptyList(),
     val showBackDialog: Boolean = false,
     val secaoAtivaId: String? = null,
@@ -107,7 +107,7 @@ sealed interface ReportCreatorIntent {
     }
 
     data class OnSectionChange(val sectionId: String) : ReportCreatorIntent
-    data class OnTabChange(val tab: RightPanelTab) : ReportCreatorIntent
+    data class OnTabChange(val tab: RightPanelTab?) : ReportCreatorIntent
     data class OnZoomChange(val newZoom: Float) : ReportCreatorIntent
 
     data object OnBackClicked : ReportCreatorIntent
