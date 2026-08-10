@@ -5,6 +5,7 @@ import org.senai.metrodoc.common.database.dao.ProjectDao
 import org.senai.metrodoc.common.database.dao.VersionDao
 import org.senai.metrodoc.common.database.dto.FullProject
 import org.senai.metrodoc.common.database.dto.ProjectDto
+import org.senai.metrodoc.common.database.dto.ProjectWithMeasurements
 import org.senai.metrodoc.common.database.entity.VersionEntity
 import org.senai.metrodoc.common.mapper.metroDocJson
 import org.senai.metrodoc.common.mapper.toDomain
@@ -12,6 +13,7 @@ import org.senai.metrodoc.common.mapper.toEntity
 import org.senai.metrodoc.common.util.toVersionName
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
+import kotlin.time.Duration.Companion.minutes
 
 interface RoomProjectRepository {
     fun getRecentProjects(): Flow<List<ProjectDto>>
@@ -24,7 +26,7 @@ interface RoomProjectRepository {
         pdfPath: String,
         pdfName: String,
         reportData: ReportData,
-        secoes: List<ReportSection>
+        secoes: List<ReportSection>,
     ): Long
 
     suspend fun deleteProjectById(projectId: Long)
@@ -74,15 +76,17 @@ class RoomProjectRepositoryImpl(
         pdfPath: String,
         pdfName: String,
         reportData: ReportData,
-        secoes: List<ReportSection>
+        secoes: List<ReportSection>,
     ): Long {
+        val agora = System.currentTimeMillis()
+
         val secoesJson = metroDocJson.encodeToString(secoes)
         val reportEntity = reportData.toEntity(
             id = projectId ?: 0,
             nomeRelatorio = projectName,
             pdfName = pdfName,
             pdfPath = pdfPath,
-            lastModified = System.currentTimeMillis(),
+            lastModified = agora,
             secoesJson = secoesJson
         )
 
@@ -90,17 +94,32 @@ class RoomProjectRepositoryImpl(
 
         val projetoSalvoId = projectDao.saveFullProject(reportEntity, measurementEntities)
 
-        val projetoJson = metroDocJson.encodeToString(projectDao.getProjectById(projetoSalvoId))
-
-        val versao = VersionEntity(
-            id = 0,
-            projectId = projetoSalvoId,
-            versionName = System.currentTimeMillis().toVersionName(),
-            createdAt = System.currentTimeMillis(),
-            contentJson = projetoJson
+        val snapshotObj = ProjectWithMeasurements(
+            reportData = reportEntity.copy(id = projetoSalvoId),
+            measurements = measurementEntities
         )
+        val projetoJson = metroDocJson.encodeToString(snapshotObj)
 
-        versionDao.insertVersion(versao)
+        val ultimaVersao = versionDao.getLatestVersion(projetoSalvoId)
+        if (ultimaVersao != null && (agora - ultimaVersao.createdAt) < 2.5.minutes.inWholeMilliseconds) {
+            //se a ultima versao foi criada ha menos de 2 min e meio, nao criamos uma nova, mas atualizamos a versao existente
+            val versaoAtualizada = ultimaVersao.copy(
+                contentJson = projetoJson,
+                createdAt = agora
+            )
+            versionDao.updateVersion(versaoAtualizada)
+        } else {
+            val novaVersao = VersionEntity(
+                id = 0,
+                projectId = projetoSalvoId,
+                versionName = agora.toVersionName(),
+                createdAt = agora,
+                contentJson = projetoJson
+            )
+            versionDao.insertVersion(novaVersao)
+        }
+
+        versionDao.trimVersions(projectId = projetoSalvoId, maxVersions = 15)
 
         return projetoSalvoId
     }
