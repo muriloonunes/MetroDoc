@@ -29,7 +29,9 @@ import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
+import org.senai.metrodoc.common.ui.MetroDocOutlinedIconButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
@@ -173,7 +175,8 @@ fun SectionEditorPanel(
             is ReportSection.Introducao -> {
                 IntroducaoSectionEditor(
                     introducao = section,
-                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
+                    onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) },
+                    onOpenEditImage = { imagem -> onIntent(ReportCreatorIntent.OnEditClicked(imagem)) }
                 )
             }
 
@@ -209,6 +212,7 @@ fun SectionEditorPanel(
             is ReportSection.Customizada -> {
                 CustomizadaSectionEditor(
                     section = section,
+                    onEditImageClick = {onIntent(ReportCreatorIntent.OnEditClicked(it))},
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
                 )
             }
@@ -219,6 +223,7 @@ fun SectionEditorPanel(
 @Composable
 fun CustomizadaSectionEditor(
     section: ReportSection.Customizada,
+    onEditImageClick: (Imagem) -> Unit,
     onDataChanged: (ReportSection.Customizada) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -286,9 +291,13 @@ fun CustomizadaSectionEditor(
                                         }
                                     )
                                 }
+
                                 is ReportBlock.GaleriaImagem -> {
                                     GaleriaImagemBlocoEditor(
                                         block = bloco,
+                                        onEdit = {
+                                            onEditImageClick(it)
+                                        },
                                         onUpdate = {
                                             val list = section.blocos.toMutableList()
                                             list[index] = it
@@ -296,6 +305,7 @@ fun CustomizadaSectionEditor(
                                         }
                                     )
                                 }
+
                                 is ReportBlock.QuebraPagina -> {
 
                                 }
@@ -355,6 +365,7 @@ fun CustomizadaSectionEditor(
 fun IntroducaoSectionEditor(
     introducao: ReportSection.Introducao,
     onDataChanged: (ReportSection.Introducao) -> Unit,
+    onOpenEditImage: (Imagem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -362,7 +373,8 @@ fun IntroducaoSectionEditor(
         type = FileKitType.Image
     ) { file ->
         file?.let {
-            onDataChanged(introducao.copy(imagePath = it.path))
+//            onDataChanged(introducao.copy(imagePath = it.path))
+            onDataChanged(introducao.copy(imagem = introducao.imagem.copy(path = it.path)))
         }
     }
     Box(modifier = modifier.fillMaxSize()) {
@@ -420,30 +432,52 @@ fun IntroducaoSectionEditor(
             ) {
                 MetroDocAddButton(
                     onClick = { imageLauncher.launch() },
-                    text = if (introducao.imagePath.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
+                    text = if (introducao.imagem.path.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
                     modifier = Modifier.weight(1f)
                 )
-                if (introducao.imagePath.isNotBlank()) {
-                    MetroDocOutlinedButton(
-                        onClick = { onDataChanged(introducao.copy(imagePath = "")) },
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(50.dp)
+                if (introducao.imagem.path.isNotBlank()) {
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                        tooltip = { PlainTooltip { Text("Remover imagem") } },
+                        state = rememberTooltipState()
                     ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.close),
-                            contentDescription = "Remover Imagem",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
+                        MetroDocOutlinedIconButton(
+                            onClick = { onDataChanged(introducao.copy(imagem = Imagem(path = ""))) },
+                            modifier = Modifier.size(50.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.close),
+                                contentDescription = "Remover Imagem",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                        tooltip = { PlainTooltip { Text("Editar imagem") } },
+                        state = rememberTooltipState()
+                    ) {
+                        MetroDocOutlinedIconButton(
+                            onClick = {
+                                onOpenEditImage(introducao.imagem)
+                            },
+                            modifier = Modifier.size(50.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.edit),
+                                contentDescription = "Editar Imagem",
+                            )
+                        }
                     }
                 }
             }
             MetroDocTextField(
                 label = "Legenda da Imagem",
                 placeholder = "Peça em medição na MMC",
-                value = introducao.imagemLegenda,
-                enabled = introducao.imagePath.isNotBlank(),
-                isRequired = introducao.imagePath.isNotBlank(),
-                onValueChange = { onDataChanged(introducao.copy(imagemLegenda = it)) },
+                value = introducao.imagem.legenda,
+                enabled = introducao.imagem.path.isNotBlank(),
+                isRequired = introducao.imagem.path.isNotBlank(),
+                onValueChange = { onDataChanged(introducao.copy(imagem = introducao.imagem.copy(legenda = it))) },
                 modifier = Modifier.fillMaxWidth()
             )
             HorizontalDivider(

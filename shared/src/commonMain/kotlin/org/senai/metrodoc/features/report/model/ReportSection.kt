@@ -26,8 +26,7 @@ sealed interface ReportSection {
             SubTexto.ReferenciaMedicao()
         ),
         val informacoesExtras: List<SubTexto> = emptyList(),
-        val imagePath: String = "",
-        val imagemLegenda: String = "",
+        val imagem: Imagem = Imagem(path = ""),
         val observacoes: String = "",
     ) : ReportSection {
         @Serializable
@@ -43,21 +42,25 @@ sealed interface ReportSection {
                 override val titulo: String = "Objetivo",
                 override val texto: String = "",
             ) : SubTexto
-            @Serializable @SerialName("EscopoAnalise")
+
+            @Serializable
+            @SerialName("EscopoAnalise")
             data class EscopoAnalise(
                 override val id: String = UUID.randomUUID().toString(),
                 override val titulo: String = "Escopo da Análise",
                 override val texto: String = "",
             ) : SubTexto
 
-            @Serializable @SerialName("ReferenciaMedicao")
+            @Serializable
+            @SerialName("ReferenciaMedicao")
             data class ReferenciaMedicao(
                 override val id: String = UUID.randomUUID().toString(),
                 override val titulo: String = "Referência de Medição",
                 override val texto: String = "",
             ) : SubTexto
 
-            @Serializable @SerialName("Customizado")
+            @Serializable
+            @SerialName("Customizado")
             data class Customizado(
                 override val id: String = UUID.randomUUID().toString(),
                 override val titulo: String = "",
@@ -66,7 +69,8 @@ sealed interface ReportSection {
         }
     }
 
-    @Serializable @SerialName("Identificacao")
+    @Serializable
+    @SerialName("Identificacao")
     data class Identificacao(
         override val id: String = UUID.randomUUID().toString(),
         override val titulo: String = "Identificação da Medição",
@@ -76,7 +80,8 @@ sealed interface ReportSection {
     ) : ReportSection
 
 
-    @Serializable @SerialName("ResultadosDimensionais")
+    @Serializable
+    @SerialName("ResultadosDimensionais")
     data class ResultadosDimensionais(
         override val id: String = UUID.randomUUID().toString(),
         override val titulo: String = "Resultados Dimensionais",
@@ -86,7 +91,8 @@ sealed interface ReportSection {
         val resumoDimensional: String = "",
     ) : ReportSection
 
-    @Serializable @SerialName("Conclusao")
+    @Serializable
+    @SerialName("Conclusao")
     data class Conclusao(
         override val id: String = UUID.randomUUID().toString(),
         override val titulo: String = "Conclusão",
@@ -95,7 +101,8 @@ sealed interface ReportSection {
         val conclusao: String = "",
     ) : ReportSection
 
-    @Serializable @SerialName("InterpretacaoResultados")
+    @Serializable
+    @SerialName("InterpretacaoResultados")
     data class InterpretacaoResultados(
         override val id: String = UUID.randomUUID().toString(),
         override val titulo: String = "Interpretação dos Resultados",
@@ -103,7 +110,9 @@ sealed interface ReportSection {
         override val movivel: Boolean = true,
         val topicos: String = "",
     ) : ReportSection
-    @Serializable @SerialName("Customizada")
+
+    @Serializable
+    @SerialName("Customizada")
     data class Customizada(
         override val id: String = UUID.randomUUID().toString(),
         override val titulo: String = "",

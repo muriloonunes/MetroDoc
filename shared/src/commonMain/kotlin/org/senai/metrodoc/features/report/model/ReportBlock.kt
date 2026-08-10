@@ -21,15 +21,7 @@ sealed interface ReportBlock {
         val imagens: List<Imagem> = emptyList(),
         val colunas: Int = 1,
         val legenda: String = "",
-    ): ReportBlock {
-        @Serializable @SerialName("Imagem")
-        data class Imagem(
-            val id: String = UUID.randomUUID().toString(),
-            val nome: String = "",
-            val path: String,
-            val legenda: String = "",
-        )
-    }
+    ): ReportBlock
 
     @Serializable @SerialName("QuebraPagina")
     data class QuebraPagina(

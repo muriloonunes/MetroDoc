@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
@@ -108,7 +109,19 @@ fun ReportCreatorScreen(
             loadingMessage = "Gerando PDF",
             isCancelable = true,
             onCancelLoading = {
-                onIntent(ReportCreatorIntent.OnCancelGeneration)
+                onIntent(ReportCreatorIntent.OnEditDismissed)
+            }
+        )
+    }
+
+    if (state.showEditDialog) {
+        EditImageDialog(
+            imagePath = state.editingImage?.path,
+            initialDrawings = state.editingImage?.drawings ?: emptyList(),
+            onDismissRequest = { onIntent(ReportCreatorIntent.OnEditDismissed) },
+            onConfirmEdit = { drawings, size ->
+                val updatedImage = state.editingImage?.copy(drawings = drawings, canvasSize = size) ?: Imagem(path = "")
+                onIntent(ReportCreatorIntent.OnEditConfirmed(updatedImage))
             }
         )
     }

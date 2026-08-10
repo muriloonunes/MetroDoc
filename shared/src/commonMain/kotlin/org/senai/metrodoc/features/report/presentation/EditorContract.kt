@@ -1,5 +1,6 @@
 package org.senai.metrodoc.features.report.presentation
 
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.model.SavedState
@@ -22,7 +23,9 @@ data class ReportCreatorState(
     val isGeneratingPdf: Boolean = false,
     val previewPdfBytes: ByteArray? = null,
     val isGeneratingPreview: Boolean = false,
-    val reportSaveState: SavedState = SavedState.Unsaved
+    val reportSaveState: SavedState = SavedState.Unsaved,
+    val showEditDialog: Boolean = false,
+    val editingImage: Imagem? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,6 +39,7 @@ data class ReportCreatorState(
         if (showBackDialog != other.showBackDialog) return false
         if (isGeneratingPdf != other.isGeneratingPdf) return false
         if (isGeneratingPreview != other.isGeneratingPreview) return false
+        if (showEditDialog != other.showEditDialog) return false
         if (pdfPath != other.pdfPath) return false
         if (pdfName != other.pdfName) return false
         if (reportName != other.reportName) return false
@@ -47,6 +51,7 @@ data class ReportCreatorState(
         if (secaoAtivaId != other.secaoAtivaId) return false
         if (!previewPdfBytes.contentEquals(other.previewPdfBytes)) return false
         if (reportSaveState != other.reportSaveState) return false
+        if (editingImage != other.editingImage) return false
 
         return true
     }
@@ -58,6 +63,7 @@ data class ReportCreatorState(
         result = 31 * result + showBackDialog.hashCode()
         result = 31 * result + isGeneratingPdf.hashCode()
         result = 31 * result + isGeneratingPreview.hashCode()
+        result = 31 * result + showEditDialog.hashCode()
         result = 31 * result + pdfPath.hashCode()
         result = 31 * result + pdfName.hashCode()
         result = 31 * result + reportName.hashCode()
@@ -69,8 +75,10 @@ data class ReportCreatorState(
         result = 31 * result + secaoAtivaId.hashCode()
         result = 31 * result + (previewPdfBytes?.contentHashCode() ?: 0)
         result = 31 * result + reportSaveState.hashCode()
+        result = 31 * result + editingImage.hashCode()
         return result
     }
+
 }
 
 sealed interface ReportCreatorIntent {
@@ -101,6 +109,7 @@ sealed interface ReportCreatorIntent {
     data class OnSectionChange(val sectionId: String) : ReportCreatorIntent
     data class OnTabChange(val tab: RightPanelTab) : ReportCreatorIntent
     data class OnZoomChange(val newZoom: Float) : ReportCreatorIntent
+
     data object OnBackClicked : ReportCreatorIntent
     data object OnBackDismissed : ReportCreatorIntent
     data object OnBackConfirmed : ReportCreatorIntent
@@ -125,6 +134,12 @@ sealed interface ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
     data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent {
+        override val contentChanged: Boolean get() = true
+    }
+
+    data class OnEditClicked(val imagem: Imagem) : ReportCreatorIntent
+    data object OnEditDismissed : ReportCreatorIntent
+    data class OnEditConfirmed(val updatedImagem: Imagem) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
 

@@ -19,6 +19,7 @@ import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
+import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportBlock
 import org.senai.metrodoc.features.report.model.ReportBlock.Texto
 
@@ -140,6 +141,7 @@ fun TextoBlocoEditor(
 @Composable
 fun GaleriaImagemBlocoEditor(
     block: ReportBlock.GaleriaImagem,
+    onEdit: (Imagem) -> Unit,
     onUpdate: (ReportBlock.GaleriaImagem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -149,7 +151,7 @@ fun GaleriaImagemBlocoEditor(
     ) { files ->
         if (!files.isNullOrEmpty()) {
             val novasImagens = files.map { file ->
-                ReportBlock.GaleriaImagem.Imagem(nome = file.name, path = file.path)
+                Imagem(nome = file.name, path = file.path)
             }
             onUpdate(block.copy(imagens = block.imagens + novasImagens))
         }
@@ -255,6 +257,18 @@ fun GaleriaImagemBlocoEditor(
                                 },
                                 modifier = Modifier.weight(1.5f)
                             )
+                            IconButton(
+                                onClick = {
+                                    onEdit(imagem)
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.edit),
+                                    contentDescription = "Remover Foto",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                             IconButton(
                                 onClick = {
                                     val listaAtualizada = block.imagens.toMutableList()
