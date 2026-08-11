@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -212,7 +213,7 @@ fun SectionEditorPanel(
             is ReportSection.Customizada -> {
                 CustomizadaSectionEditor(
                     section = section,
-                    onEditImageClick = {onIntent(ReportCreatorIntent.OnEditImageClicked(it))},
+                    onEditImageClick = { onIntent(ReportCreatorIntent.OnEditImageClicked(it)) },
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
                 )
             }
@@ -373,8 +374,15 @@ fun IntroducaoSectionEditor(
         type = FileKitType.Image
     ) { file ->
         file?.let {
-//            onDataChanged(introducao.copy(imagePath = it.path))
-            onDataChanged(introducao.copy(imagem = introducao.imagem.copy(path = it.path)))
+            onDataChanged(
+                introducao.copy(
+                    imagem = introducao.imagem.copy(
+                        path = it.path,
+                        drawings = emptyList(),
+                        canvasSize = Size.Zero
+                    )
+                )
+            )
         }
     }
     Box(modifier = modifier.fillMaxSize()) {
