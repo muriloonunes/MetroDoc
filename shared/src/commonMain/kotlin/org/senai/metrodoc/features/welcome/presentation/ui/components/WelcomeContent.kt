@@ -39,6 +39,7 @@ import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.util.toDateTimeString
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
+import java.awt.Desktop
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -81,6 +82,14 @@ fun WelcomeContent(
                     .first()
 
                 file.write(bytes)
+
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        Desktop.getDesktop().open(file.file)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
 
                 pdfBytesToSave = null
                 projectIdToExport = null

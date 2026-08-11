@@ -40,6 +40,7 @@ import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 import org.senai.metrodoc.features.report.presentation.ReportCreatorState
 import org.senai.metrodoc.features.report.presentation.ui.components.*
 import java.awt.Cursor
+import java.awt.Desktop
 
 enum class RightPanelTab(
     val text: String,
@@ -78,6 +79,14 @@ fun ReportCreatorScreen(
                     .first()
 
                 file.write(bytes)
+
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        Desktop.getDesktop().open(file.file)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
 
                 pdfBytesToSave = null
 
