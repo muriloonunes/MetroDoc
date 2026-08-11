@@ -75,8 +75,6 @@ object ReportHtmlTemplate {
                             .replace("{{SUB_TEXTO}}", it.texto.toHtmlText())
                     }
 
-//                    val imgBase64 =
-//                        if (secao.imagePath.isNotBlank()) ResourceUtils.localFileToBase64(secao.imagePath) else null
                     val imgSecao = secao.imagem
                     val imgBase64 =
                         if (imgSecao.path.isNotBlank()) {
