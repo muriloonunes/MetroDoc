@@ -44,7 +44,7 @@ import java.awt.Desktop
 
 enum class RightPanelTab(
     val text: String,
-    val res: DrawableResource
+    val res: DrawableResource,
 ) {
     PREVIEW("Preview", Res.drawable.preview),
     PDF_ORIGINAL("PDF Original", Res.drawable.original_pdf),
@@ -158,6 +158,7 @@ fun ReportCreatorScreen(
     ) {
         TopToolbar(
             title = state.reportName,
+            exportEnabled = state.canExport,
             savedState = state.reportSaveState,
             onUpdateTitle = {
                 onIntent(ReportCreatorIntent.OnReportNameChanged(it))

@@ -28,6 +28,7 @@ import org.senai.metrodoc.features.report.model.SavedState
 @Composable
 fun TopToolbar(
     title: String,
+    exportEnabled: Boolean,
     savedState: SavedState,
     onUpdateTitle: (String) -> Unit,
     onBackClick: () -> Unit,
@@ -207,12 +208,22 @@ fun TopToolbar(
                 onSave = onSave
             )
             Spacer(modifier = Modifier.width(4.dp))
-            MetroDocPrimaryButton(
-                onClick = onEmitReportClick,
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                tooltip = {
+                    if (!exportEnabled)
+                        PlainTooltip { Text("Preencha todos os campos obrigatórios para emitir o relatório") }
+                },
+                state = rememberTooltipState(),
             ) {
-                Text(
-                    text = "Emitir Relatório",
-                )
+                MetroDocPrimaryButton(
+                    onClick = onEmitReportClick,
+                    enabled = exportEnabled
+                ) {
+                    Text(
+                        text = "Emitir Relatório",
+                    )
+                }
             }
         }
     }
@@ -222,7 +233,7 @@ fun TopToolbar(
 fun SaveIconButton(
     savedState: SavedState,
     onSave: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val tooltipText = when (savedState) {
         SavedState.Saved -> "Projeto salvo"
@@ -258,6 +269,7 @@ fun SaveIconButton(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
+
                     SavedState.JustSaved -> {
                         Icon(
                             painter = painterResource(Res.drawable.confirm),
@@ -266,6 +278,7 @@ fun SaveIconButton(
                             modifier = Modifier.size(18.dp)
                         )
                     }
+
                     SavedState.Saved -> {
                         Icon(
                             painter = painterResource(Res.drawable.save),
@@ -274,6 +287,7 @@ fun SaveIconButton(
                             modifier = Modifier.size(18.dp)
                         )
                     }
+
                     SavedState.Unsaved -> {
                         Icon(
                             painter = painterResource(Res.drawable.save),

@@ -11,4 +11,14 @@ data class ReportData(
     val dataHora: String = "",
     val qtdCaracteristicas: String = "",
     val caracteristicas: List<MeasurementData> = emptyList(),
-)
+) {
+    val isValid: Boolean
+        get() {
+            val campos = listOf(
+                cliente, componente, identificadorCalypso, maquina,
+                numeroMaquina, software, operador, dataHora, qtdCaracteristicas
+            )
+
+            return campos.all { it.isNotBlank() } && caracteristicas.isNotEmpty()
+        }
+}

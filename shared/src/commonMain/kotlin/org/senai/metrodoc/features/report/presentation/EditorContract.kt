@@ -25,6 +25,14 @@ data class ReportCreatorState(
     val editingImage: Imagem? = null,
     val versions: List<ProjectVersion> = emptyList(),
 ) {
+    val canExport: Boolean
+        get() {
+            val reportValido = currentReport?.isValid ?: false
+            val secoesValidas = secoes.all { it.isValid }
+
+            return reportValido && secoesValidas
+        }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

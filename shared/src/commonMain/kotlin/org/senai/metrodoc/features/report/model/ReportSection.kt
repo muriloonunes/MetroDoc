@@ -11,6 +11,7 @@ sealed interface ReportSection {
     val titulo: String
     val removivel: Boolean
     val movivel: Boolean
+    val isValid: Boolean
 
     @Serializable
     @SerialName("Introducao")
@@ -29,6 +30,15 @@ sealed interface ReportSection {
         val imagem: Imagem = Imagem(path = ""),
         val observacoes: String = "",
     ) : ReportSection {
+        override val isValid: Boolean
+            get() {
+                return this.relatorioTitulo.isNotBlank() &&
+                        imagem.path.isNotBlank() &&
+                        imagem.legenda.isNotBlank() &&
+                        this.textos.all { it.titulo.isNotBlank() && it.texto.isNotBlank() } &&
+                        (informacoesExtras.isEmpty() || informacoesExtras.all { it.titulo.isNotBlank() && it.texto.isNotBlank() })
+            }
+
         @Serializable
         sealed interface SubTexto {
             val id: String
@@ -77,8 +87,10 @@ sealed interface ReportSection {
         override val removivel: Boolean = false,
         override val movivel: Boolean = false,
         @Transient val reportData: ReportData = ReportData(),
-    ) : ReportSection
-
+    ) : ReportSection {
+        override val isValid: Boolean
+            get() = reportData.isValid
+    }
 
     @Serializable
     @SerialName("ResultadosDimensionais")
@@ -89,7 +101,10 @@ sealed interface ReportSection {
         override val movivel: Boolean = false,
         @Transient val measurements: List<MeasurementData> = emptyList(),
         val resumoDimensional: String = "",
-    ) : ReportSection
+    ) : ReportSection {
+        override val isValid: Boolean
+            get() = measurements.all { it.isValid }
+    }
 
     @Serializable
     @SerialName("Conclusao")
@@ -99,7 +114,10 @@ sealed interface ReportSection {
         override val removivel: Boolean = false,
         override val movivel: Boolean = false,
         val conclusao: String = "",
-    ) : ReportSection
+    ) : ReportSection{
+        override val isValid: Boolean
+            get() = conclusao.isNotBlank()
+    }
 
     @Serializable
     @SerialName("InterpretacaoResultados")
@@ -109,7 +127,10 @@ sealed interface ReportSection {
         override val removivel: Boolean = false,
         override val movivel: Boolean = true,
         val topicos: String = "",
-    ) : ReportSection
+    ) : ReportSection {
+        override val isValid: Boolean
+            get() = topicos.isNotBlank()
+    }
 
     @Serializable
     @SerialName("Customizada")
@@ -119,5 +140,8 @@ sealed interface ReportSection {
         override val removivel: Boolean = true,
         override val movivel: Boolean = true,
         val blocos: List<ReportBlock> = emptyList(),
-    ) : ReportSection
+    ) : ReportSection{
+        override val isValid: Boolean
+            get() = blocos.all { it.isValid }
+    }
 }
