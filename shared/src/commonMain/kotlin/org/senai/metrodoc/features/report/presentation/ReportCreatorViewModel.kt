@@ -171,7 +171,16 @@ class ReportCreatorViewModel(
                     val updatedList = currentState.secoes.map { section ->
                         if (section.id == intent.updatedSection.id) intent.updatedSection else section
                     }
-                    currentState.copy(secoes = updatedList)
+                    val updatedReportData = if (intent.updatedSection is ReportSection.ResultadosDimensionais) {
+                        currentState.currentReport?.copy(caracteristicas = intent.updatedSection.measurements)
+                    } else {
+                        currentState.currentReport
+                    }
+
+                    currentState.copy(
+                        secoes = updatedList,
+                        currentReport = updatedReportData
+                    )
                 }
             }
 
