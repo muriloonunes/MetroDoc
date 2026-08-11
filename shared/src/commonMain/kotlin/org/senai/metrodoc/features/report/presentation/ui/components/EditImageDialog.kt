@@ -578,9 +578,10 @@ fun EditImageDialog(
 
                     MetroDocPrimaryButton(
                         onClick = {
+                            val boundsSize = imageBounds?.let { Size(it.width, it.height) } ?: Size.Zero
                             onConfirmEdit(
                                 drawings.toList(),
-                                imageState.painter?.intrinsicSize ?: Size.Zero
+                                boundsSize
                             )
                         },
                         contentPadding = PaddingValues(
