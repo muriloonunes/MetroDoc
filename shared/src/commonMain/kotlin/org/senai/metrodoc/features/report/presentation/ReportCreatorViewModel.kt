@@ -6,6 +6,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import org.senai.metrodoc.common.data.RoomProjectRepository
+import org.senai.metrodoc.common.mapper.toDomain
 import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.common.util.PdfRenderEngine
 import org.senai.metrodoc.features.report.data.MemoryReportRepository
@@ -58,6 +59,24 @@ class ReportCreatorViewModel(
                     }
                 }
         }
+
+
+        viewModelScope.launch {
+            _state.map { it.reportId }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collectLatest { reportId ->
+                    roomProjectRepository.getVersions(reportId)
+                        .catch { e ->
+                            e.printStackTrace()
+                        }
+                        .collect { versions ->
+                            _state.update { state ->
+                                state.copy(versions = versions.map { it.toDomain() })
+                            }
+                        }
+                }
+        }
     }
 
     fun handleIntent(intent: ReportCreatorIntent) {
@@ -70,6 +89,7 @@ class ReportCreatorViewModel(
                 val savedId = intent.reportId
 
                 if (savedId != null) {
+                    //se o savedId não for nulo, significa que o relatório já foi salvo
                     viewModelScope.launch {
                         val savedProject = roomProjectRepository.getProjectById(savedId)
                         if (savedProject != null) {
@@ -207,15 +227,15 @@ class ReportCreatorViewModel(
                 _state.update { it.copy(reportName = intent.newName) }
             }
 
-            is ReportCreatorIntent.OnEditClicked -> {
+            is ReportCreatorIntent.OnEditImageClicked -> {
                 _state.update { it.copy(showEditDialog = true, editingImage = intent.imagem) }
             }
 
-            ReportCreatorIntent.OnEditDismissed -> {
+            ReportCreatorIntent.OnEditImageDismissed -> {
                 _state.update { it.copy(showEditDialog = false, editingImage = null) }
             }
 
-            is ReportCreatorIntent.OnEditConfirmed -> {
+            is ReportCreatorIntent.OnEditImageConfirmed -> {
                 _state.update {
                     val updatedSections = it.secoes.map { section ->
                         when (section) {
@@ -261,6 +281,41 @@ class ReportCreatorViewModel(
                     _state.update { it.copy(reportId = newId, reportSaveState = SavedState.JustSaved) }
                     delay(3.seconds)
                     _state.update { it.copy(reportSaveState = SavedState.Saved) }
+                }
+            }
+
+            is ReportCreatorIntent.OnRestoreVersion -> {
+                viewModelScope.launch {
+                    val projId = roomProjectRepository.restoreVersion(intent.versionId)
+                    if (projId != 0L) {
+                        val projetoRestaurado = roomProjectRepository.getProjectById(projId)
+                        if (projetoRestaurado != null) {
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    reportId = projetoRestaurado.projectId,
+                                    isInitializing = false,
+                                    pdfPath = projetoRestaurado.pdfPath,
+                                    pdfName = projetoRestaurado.pdfName,
+                                    reportName = projetoRestaurado.reportName,
+                                    currentReport = projetoRestaurado.reportData,
+                                    secoes = projetoRestaurado.secoes,
+                                    reportSaveState = SavedState.Saved
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            is ReportCreatorIntent.OnDeleteVersion -> {
+                viewModelScope.launch {
+                    roomProjectRepository.deleteVersion(intent.versionId)
+                }
+            }
+
+            is ReportCreatorIntent.OnRenameVersion -> {
+                viewModelScope.launch {
+                    roomProjectRepository.renameVersion(intent.versionId, intent.newName)
                 }
             }
 

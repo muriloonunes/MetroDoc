@@ -120,7 +120,7 @@ fun ReportCreatorScreen(
             loadingMessage = "Gerando PDF",
             isCancelable = true,
             onCancelLoading = {
-                onIntent(ReportCreatorIntent.OnEditDismissed)
+                onIntent(ReportCreatorIntent.OnEditImageDismissed)
             }
         )
     }
@@ -129,10 +129,10 @@ fun ReportCreatorScreen(
         EditImageDialog(
             imagePath = state.editingImage?.path,
             initialDrawings = state.editingImage?.drawings ?: emptyList(),
-            onDismissRequest = { onIntent(ReportCreatorIntent.OnEditDismissed) },
+            onDismissRequest = { onIntent(ReportCreatorIntent.OnEditImageDismissed) },
             onConfirmEdit = { drawings, size ->
                 val updatedImage = state.editingImage?.copy(drawings = drawings, canvasSize = size) ?: Imagem(path = "")
-                onIntent(ReportCreatorIntent.OnEditConfirmed(updatedImage))
+                onIntent(ReportCreatorIntent.OnEditImageConfirmed(updatedImage))
             }
         )
     }
@@ -224,16 +224,32 @@ fun ReportCreatorScreen(
                                 .fillMaxHeight()
                                 .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                         ) {
-                            Box(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = state.abaDireitaAtiva.text,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+
+                                if (state.abaDireitaAtiva == RightPanelTab.VERSIONS && state.versions.isNotEmpty()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    ) {
+                                        Text(
+                                            text = "${state.versions.size} versões",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -264,6 +280,15 @@ fun ReportCreatorScreen(
                                     }
 
                                     RightPanelTab.VERSIONS -> {
+                                        VersionsViewer(
+                                            versions = state.versions,
+                                            onRestoreVersion = { onIntent(ReportCreatorIntent.OnRestoreVersion(it)) },
+                                            onDeleteVersion = { onIntent(ReportCreatorIntent.OnDeleteVersion(it)) },
+                                            onRenameVersion = { id, nome ->
+                                                onIntent(ReportCreatorIntent.OnRenameVersion(id, nome))
+                                            },
+                                            onFocusRoot = { rootFocusRequester.requestFocus() }
+                                        )
                                     }
                                 }
                             }

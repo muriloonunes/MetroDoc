@@ -1,9 +1,6 @@
 package org.senai.metrodoc.features.report.presentation
 
-import org.senai.metrodoc.features.report.model.Imagem
-import org.senai.metrodoc.features.report.model.ReportData
-import org.senai.metrodoc.features.report.model.ReportSection
-import org.senai.metrodoc.features.report.model.SavedState
+import org.senai.metrodoc.features.report.model.*
 import org.senai.metrodoc.features.report.presentation.ui.RightPanelTab
 
 data class ReportCreatorState(
@@ -26,6 +23,7 @@ data class ReportCreatorState(
     val reportSaveState: SavedState = SavedState.Unsaved,
     val showEditDialog: Boolean = false,
     val editingImage: Imagem? = null,
+    val versions: List<ProjectVersion> = emptyList(),
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -52,6 +50,7 @@ data class ReportCreatorState(
         if (!previewPdfBytes.contentEquals(other.previewPdfBytes)) return false
         if (reportSaveState != other.reportSaveState) return false
         if (editingImage != other.editingImage) return false
+        if (versions != other.versions) return false
 
         return true
     }
@@ -76,6 +75,7 @@ data class ReportCreatorState(
         result = 31 * result + (previewPdfBytes?.contentHashCode() ?: 0)
         result = 31 * result + reportSaveState.hashCode()
         result = 31 * result + editingImage.hashCode()
+        result = 31 * result + versions.hashCode()
         return result
     }
 
@@ -117,15 +117,19 @@ sealed interface ReportCreatorIntent {
     data class OnUpdateSection(val updatedSection: ReportSection) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
+
     data class OnRemoveSection(val sectionId: String) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
+
     data class OnMoveSection(val fromIndex: Int, val toIndex: Int) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
+
     data class OnAddSection(val section: ReportSection) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
+
     data class OnAddMeasurement(val sectionId: String) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
@@ -133,15 +137,20 @@ sealed interface ReportCreatorIntent {
     data class OnReportNameChanged(val newName: String) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
+
     data class OnReportFieldChanged(val updatedData: ReportData) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
 
-    data class OnEditClicked(val imagem: Imagem) : ReportCreatorIntent
-    data object OnEditDismissed : ReportCreatorIntent
-    data class OnEditConfirmed(val updatedImagem: Imagem) : ReportCreatorIntent {
+    data class OnEditImageClicked(val imagem: Imagem) : ReportCreatorIntent
+    data object OnEditImageDismissed : ReportCreatorIntent
+    data class OnEditImageConfirmed(val updatedImagem: Imagem) : ReportCreatorIntent {
         override val contentChanged: Boolean get() = true
     }
+
+    data class OnRestoreVersion(val versionId: Long) : ReportCreatorIntent
+    data class OnDeleteVersion(val versionId: Long) : ReportCreatorIntent
+    data class OnRenameVersion(val versionId: Long, val newName: String) : ReportCreatorIntent
 
     data object OnSaveProject : ReportCreatorIntent
 

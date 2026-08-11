@@ -15,7 +15,11 @@ import org.senai.metrodoc.common.database.entity.VersionEntity
         ReportDataEntity::class,
         MeasurementDataEntity::class,
         VersionEntity::class
-    ], version = 2
+    ],
+    version = 2,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2)
+    ]
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 @ColumnTypeConverters(DrawShapeConverters::class)
@@ -32,8 +36,7 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<MetroDocDatabase>
 fun getRoomDatabase(
     builder: RoomDatabase.Builder<MetroDocDatabase>
 ): MetroDocDatabase {
-    return builder.
-            setDriver(BundledSQLiteDriver())
+    return builder.setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
 }

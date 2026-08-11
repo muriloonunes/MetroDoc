@@ -1,9 +1,11 @@
 package org.senai.metrodoc.common.mapper
 
 import kotlinx.serialization.json.Json
+import org.senai.metrodoc.common.database.dto.VersionDto
 import org.senai.metrodoc.common.database.entity.MeasurementDataEntity
 import org.senai.metrodoc.common.database.entity.ReportDataEntity
 import org.senai.metrodoc.features.report.model.MeasurementData
+import org.senai.metrodoc.features.report.model.ProjectVersion
 import org.senai.metrodoc.features.report.model.ReportData
 
 val metroDocJson = Json {
@@ -81,3 +83,9 @@ fun MeasurementDataEntity.toDomain(): MeasurementData =
         isForaTolerancia = this.isForaTolerancia,
         incluidaRelatorio = this.incluidaRelatorio,
     )
+
+fun VersionDto.toDomain(): ProjectVersion = ProjectVersion(
+    id = this.id,
+    nomeVersao = this.versionName,
+    modificadoEm = this.createdAt
+)

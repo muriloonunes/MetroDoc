@@ -16,8 +16,11 @@ interface ProjectDao {
     @Query("SELECT * FROM reports WHERE id = :projectId")
     suspend fun getProjectById(projectId: Long): ProjectWithMeasurements?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert
     suspend fun insertReport(report: ReportDataEntity): Long
+
+    @Update
+    suspend fun updateReport(report: ReportDataEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeasurements(measurements: List<MeasurementDataEntity>)
@@ -27,7 +30,12 @@ interface ProjectDao {
 
     @Transaction
     suspend fun saveFullProject(report: ReportDataEntity, measurements: List<MeasurementDataEntity>): Long {
-        val generatedId = insertReport(report)
+        val generatedId = if (report.id == 0L) {
+            insertReport(report)
+        } else {
+            updateReport(report)
+            report.id
+        }
         deleteMeasurements(generatedId)
         val linkedMeasurements = measurements.map { it.copy(reportId = generatedId) }
         insertMeasurements(linkedMeasurements)

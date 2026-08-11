@@ -51,7 +51,7 @@ fun SectionEditorPanel(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        var editarTitulo by remember(section.id) { mutableStateOf(false) }
+        var editarTitulo by remember(section.hashCode()) { mutableStateOf(false) }
 
         if (section is ReportSection.Customizada) {
             val focusRequester = remember { FocusRequester() }
@@ -176,7 +176,7 @@ fun SectionEditorPanel(
                 IntroducaoSectionEditor(
                     introducao = section,
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) },
-                    onOpenEditImage = { imagem -> onIntent(ReportCreatorIntent.OnEditClicked(imagem)) }
+                    onOpenEditImage = { imagem -> onIntent(ReportCreatorIntent.OnEditImageClicked(imagem)) }
                 )
             }
 
@@ -212,7 +212,7 @@ fun SectionEditorPanel(
             is ReportSection.Customizada -> {
                 CustomizadaSectionEditor(
                     section = section,
-                    onEditImageClick = {onIntent(ReportCreatorIntent.OnEditClicked(it))},
+                    onEditImageClick = {onIntent(ReportCreatorIntent.OnEditImageClicked(it))},
                     onDataChanged = { onIntent(ReportCreatorIntent.OnUpdateSection(it)) }
                 )
             }
