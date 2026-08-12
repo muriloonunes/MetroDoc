@@ -12,6 +12,7 @@ sealed interface ReportSection {
     val removivel: Boolean
     val movivel: Boolean
     val isValid: Boolean
+    val errors: List<SectionError> get() = emptyList()
 
     @Serializable
     @SerialName("Introducao")
@@ -30,14 +31,65 @@ sealed interface ReportSection {
         val imagem: Imagem = Imagem(path = ""),
         val observacoes: String = "",
     ) : ReportSection {
-        override val isValid: Boolean
+        override val errors: List<SectionError>
             get() {
-                return this.relatorioTitulo.isNotBlank() &&
-                        imagem.path.isNotBlank() &&
-                        imagem.legenda.isNotBlank() &&
-                        this.textos.all { it.titulo.isNotBlank() && it.texto.isNotBlank() } &&
-                        (informacoesExtras.isEmpty() || informacoesExtras.all { it.titulo.isNotBlank() && it.texto.isNotBlank() })
+                val list = mutableListOf<SectionError>()
+                if (this.relatorioTitulo.isBlank()) {
+                    list.add(
+                        SectionError(
+                            this.id,
+                            this.titulo,
+                            "Título do Relatório",
+                            "O título do relatório é obrigatório."
+                        )
+                    )
+                }
+                if (imagem.path.isBlank()) {
+                    list.add(SectionError(id, titulo, "Foto do Componente", "A foto do componente é obrigatória"))
+                }
+                if (imagem.path.isNotBlank() && imagem.legenda.isBlank()) {
+                    list.add(SectionError(id, titulo, "Legenda da Foto", "A legenda da foto é obrigatória"))
+                }
+                textos.forEach { subTexto ->
+                    if (subTexto.titulo.isBlank()) {
+                        list.add(
+                            SectionError(
+                                id,
+                                titulo,
+                                "Título do texto: ${subTexto.titulo.ifBlank { "Sem nome" }}",
+                                "Preencha o campo"
+                            )
+                        )
+                    }
+                    if (subTexto.texto.isBlank()) {
+                        list.add(
+                            SectionError(
+                                id,
+                                titulo,
+                                "Conteúdo de ${subTexto.titulo.ifBlank { "Texto da Introdução" }}",
+                                "Preencha o campo"
+                            )
+                        )
+                    }
+                }
+
+                informacoesExtras.forEachIndexed { index, extra ->
+                    if (extra.titulo.isBlank() || extra.texto.isBlank()) {
+                        list.add(
+                            SectionError(
+                                id,
+                                titulo,
+                                "Informação Extra #${index + 1} incompleta",
+                                "Preencha o campo"
+                            )
+                        )
+                    }
+                }
+                return list
             }
+
+        override val isValid: Boolean
+            get() = errors.isEmpty()
 
         @Serializable
         sealed interface SubTexto {
@@ -101,8 +153,27 @@ sealed interface ReportSection {
         @Transient val measurements: List<MeasurementData> = emptyList(),
         val resumoDimensional: String = "",
     ) : ReportSection {
+        override val errors: List<SectionError>
+            get() {
+                val list = mutableListOf<SectionError>()
+                measurements.forEachIndexed { index, m ->
+                    if (!m.isValid) {
+                        val caracteristicaNome = m.nome.ifBlank { "Item #${index + 1}" }
+                        list.add(
+                            SectionError(
+                                id,
+                                titulo,
+                                "Característica '$caracteristicaNome' possui campos em branco",
+                                ""
+                            )
+                        )
+                    }
+                }
+                return list
+            }
+
         override val isValid: Boolean
-            get() = measurements.all { it.isValid }
+            get() = errors.isEmpty()
     }
 
     @Serializable
@@ -113,9 +184,14 @@ sealed interface ReportSection {
         override val removivel: Boolean = false,
         override val movivel: Boolean = false,
         val conclusao: String = "",
-    ) : ReportSection{
+    ) : ReportSection {
+        override val errors: List<SectionError>
+            get() = if (conclusao.isBlank()) {
+                listOf(SectionError(id, titulo, "Texto da Conclusão"))
+            } else emptyList()
+
         override val isValid: Boolean
-            get() = conclusao.isNotBlank()
+            get() = errors.isEmpty()
     }
 
     @Serializable
@@ -127,8 +203,13 @@ sealed interface ReportSection {
         override val movivel: Boolean = true,
         val topicos: String = "",
     ) : ReportSection {
+        override val errors: List<SectionError>
+            get() = if (topicos.isBlank()) {
+                listOf(SectionError(id, titulo, "Tópicos de Interpretação"))
+            } else emptyList()
+
         override val isValid: Boolean
-            get() = topicos.isNotBlank()
+            get() = errors.isEmpty()
     }
 
     @Serializable
@@ -139,8 +220,41 @@ sealed interface ReportSection {
         override val removivel: Boolean = true,
         override val movivel: Boolean = true,
         val blocos: List<ReportBlock> = emptyList(),
-    ) : ReportSection{
+    ) : ReportSection {
+        override val errors: List<SectionError>
+            get() {
+                val list = mutableListOf<SectionError>()
+                val nomeSecao = titulo.ifBlank { "Seção Sem Título" }
+
+                if (titulo.isBlank()) {
+                    list.add(SectionError(id, nomeSecao, "Título da Seção"))
+                }
+
+                blocos.forEachIndexed { index, bloco ->
+                    when (bloco) {
+                        is ReportBlock.Texto -> {
+                            if (bloco.conteudo.isBlank()) {
+                                list.add(SectionError(id, nomeSecao, "Bloco de Texto #${index + 1} em branco"))
+                            }
+                        }
+                        is ReportBlock.GaleriaImagem -> {
+                            if (bloco.imagens.isEmpty()) {
+                                list.add(SectionError(id, nomeSecao, "Galeria #${index + 1} não possui imagens"))
+                            } else {
+                                bloco.imagens.forEachIndexed { imgIndex, img ->
+                                    if (img.path.isBlank()) {
+                                        list.add(SectionError(id, nomeSecao, "Imagem #${imgIndex + 1} da Galeria #${index + 1} sem arquivo"))
+                                    }
+                                }
+                            }
+                        }
+                        is ReportBlock.QuebraPagina -> { }
+                    }
+                }
+                return list
+            }
+
         override val isValid: Boolean
-            get() = blocos.all { it.isValid }
+            get() = errors.isEmpty()
     }
 }

@@ -22,15 +22,17 @@ import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.TitleEditorTextField
 import org.senai.metrodoc.features.report.model.ReportSection
+import org.senai.metrodoc.features.report.model.SectionError
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 
 @Composable
 fun SectionSidebar(
     secoes: List<ReportSection>,
     selectedId: String?,
+    secoesAbertas: Set<String>,
+    sectionErrors: List<SectionError>,
     onSelectSection: (String) -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
-    isReportDataValid: Boolean = true,
     onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -74,7 +76,8 @@ fun SectionSidebar(
                         index = index,
                         totalCount = secoes.size,
                         isSelected = selectedId == section.id,
-                        isReportDataValid = isReportDataValid,
+                        secoesAbertas = secoesAbertas,
+                        sectionErrors = sectionErrors,
                         onSelect = {
                             if (isAddingSection) {
                                 isAddingSection = false
@@ -229,9 +232,10 @@ private fun SectionSidebarTile(
     index: Int,
     totalCount: Int,
     isSelected: Boolean,
+    secoesAbertas: Set<String>,
+    sectionErrors: List<SectionError>,
     onSelect: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
-    isReportDataValid: Boolean = true,
     onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -305,8 +309,9 @@ private fun SectionSidebarTile(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val isTileValid = if (section is ReportSection.Identificacao) isReportDataValid else section.isValid
-                    if (!isTileValid) {
+                    val hasError = sectionErrors.any { it.sectionId == section.id }
+                    val showWarningInSidebar = secoesAbertas.contains(section.id) && hasError
+                    if (showWarningInSidebar) {
                         Icon(
                             painter = painterResource(Res.drawable.warning),
                             contentDescription = "Seção inválida",

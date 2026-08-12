@@ -41,11 +41,14 @@ class ReportCreatorViewModel(
             ReportSection.InterpretacaoResultados(),
             ReportSection.Conclusao(),
         )
+        val initialSectionId = initialSections.firstOrNull()?.id
 
         _state.update {
             it.copy(
                 currentReport = currentReport,
-                secoes = initialSections
+                secoes = initialSections,
+                secaoAtivaId = initialSectionId,
+                secoesAbertas = initialSectionId?.let { id -> setOf(id) } ?: emptySet()
             )
         }
 
@@ -133,7 +136,12 @@ class ReportCreatorViewModel(
             }
 
             is ReportCreatorIntent.OnSectionChange -> {
-                _state.update { it.copy(secaoAtivaId = intent.sectionId) }
+                _state.update {
+                    it.copy(
+                        secaoAtivaId = intent.sectionId,
+                        secoesAbertas = it.secoesAbertas + intent.sectionId
+                    )
+                }
             }
 
             is ReportCreatorIntent.OnTabChange -> {

@@ -21,4 +21,22 @@ data class ReportData(
 
             return campos.all { it.isNotBlank() } && caracteristicas.isNotEmpty()
         }
+
+    fun getErrors(
+        sectionId: String,
+        sectionTitle: String,
+    ): List<SectionError> {
+        val list = mutableListOf<SectionError>()
+        if (cliente.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Cliente / Projeto", "O nome do cliente ou do projeto é obrigatório"))
+        if (componente.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Componente Avaliado", "O nome do componente é obrigatório"))
+        if (identificadorCalypso.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Identificação no relatório CALYPSO", "A identificação é obrigatória"))
+        if (maquina.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Máquina de medição", "O nome da máquina é obrigatório"))
+        if (numeroMaquina.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Número da MMC", "O número da máquina é obrigatório"))
+        if (software.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Software", "O nome do software é obrigatório"))
+        if (operador.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Operador", "O nome do operador é obrigatório"))
+        if (dataHora.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Data e Hora", "A data e hora são obrigatórias"))
+        if (qtdCaracteristicas.isBlank()) list.add(SectionError(sectionId, sectionTitle, "Quantidade de Características", "A quantidade de características é obrigatória"))
+
+        return list
+    }
 }

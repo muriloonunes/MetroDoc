@@ -15,6 +15,7 @@ data class ReportCreatorState(
     val currentReport: ReportData? = null,
     val abaDireitaAtiva: RightPanelTab? = RightPanelTab.PREVIEW,
     val secoes: List<ReportSection> = emptyList(),
+    val secoesAbertas: Set<String> = emptySet(),
     val showBackDialog: Boolean = false,
     val secaoAtivaId: String? = null,
     val isGeneratingPdf: Boolean = false,
@@ -25,6 +26,15 @@ data class ReportCreatorState(
     val editingImage: Imagem? = null,
     val versions: List<ProjectVersion> = emptyList(),
 ) {
+    val sectionErrors: List<SectionError>
+        get() {
+            return secoes.flatMap { secao ->
+                if (secao is ReportSection.Identificacao) {
+                    currentReport?.getErrors(secao.id, secao.titulo) ?: emptyList()
+                } else secao.errors
+            }
+        }
+
     val canExport: Boolean
         get() {
             val reportValido = currentReport?.isValid ?: false
@@ -54,11 +64,14 @@ data class ReportCreatorState(
         if (currentReport != other.currentReport) return false
         if (abaDireitaAtiva != other.abaDireitaAtiva) return false
         if (secoes != other.secoes) return false
+        if (secoesAbertas != other.secoesAbertas) return false
         if (secaoAtivaId != other.secaoAtivaId) return false
         if (!previewPdfBytes.contentEquals(other.previewPdfBytes)) return false
         if (reportSaveState != other.reportSaveState) return false
         if (editingImage != other.editingImage) return false
         if (versions != other.versions) return false
+        if (canExport != other.canExport) return false
+        if (sectionErrors != other.sectionErrors) return false
 
         return true
     }
@@ -79,14 +92,16 @@ data class ReportCreatorState(
         result = 31 * result + currentReport.hashCode()
         result = 31 * result + abaDireitaAtiva.hashCode()
         result = 31 * result + secoes.hashCode()
+        result = 31 * result + secoesAbertas.hashCode()
         result = 31 * result + secaoAtivaId.hashCode()
         result = 31 * result + (previewPdfBytes?.contentHashCode() ?: 0)
         result = 31 * result + reportSaveState.hashCode()
         result = 31 * result + editingImage.hashCode()
         result = 31 * result + versions.hashCode()
+        result = 31 * result + canExport.hashCode()
+        result = 31 * result + sectionErrors.hashCode()
         return result
     }
-
 }
 
 sealed interface ReportCreatorIntent {

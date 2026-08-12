@@ -22,10 +22,7 @@ import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.flow.Flow
-import metrodoc.shared.generated.resources.Res
-import metrodoc.shared.generated.resources.change_history
-import metrodoc.shared.generated.resources.original_pdf
-import metrodoc.shared.generated.resources.preview
+import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
@@ -44,7 +41,8 @@ enum class RightPanelTab(
 ) {
     PREVIEW("Preview", Res.drawable.preview),
     PDF_ORIGINAL("PDF Original", Res.drawable.original_pdf),
-    VERSIONS("Versões", Res.drawable.change_history)
+    VERSOES("Versões", Res.drawable.change_history),
+    ERROS("Erros", Res.drawable.warning)
 }
 
 @Composable
@@ -67,7 +65,7 @@ fun ReportCreatorScreen(
     ) { file ->
         scope.savePdf(
             file = file,
-            getpdfBytes = {pdfBytesToSave},
+            getpdfBytes = { pdfBytesToSave },
             onEnsureBytesGenerated = {
                 file?.path?.let { path ->
                     onIntent(ReportCreatorIntent.OnGeneratePdf(path))
@@ -167,9 +165,10 @@ fun ReportCreatorScreen(
                 SectionSidebar(
                     secoes = state.secoes,
                     selectedId = state.secaoAtivaId,
+                    secoesAbertas = state.secoesAbertas,
+                    sectionErrors = state.sectionErrors,
                     onSelectSection = { onIntent(ReportCreatorIntent.OnSectionChange(it)) },
                     onIntent = onIntent,
-                    isReportDataValid = state.currentReport?.isValid ?: false,
                     onFocusRoot = { rootFocusRequester.requestFocus() },
                     modifier = Modifier.width(sidebarWidth).fillMaxHeight()
                 )
@@ -233,7 +232,7 @@ fun ReportCreatorScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
 
-                                if (state.abaDireitaAtiva == RightPanelTab.VERSIONS && state.versions.isNotEmpty()) {
+                                if (state.abaDireitaAtiva == RightPanelTab.VERSOES && state.versions.isNotEmpty()) {
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
@@ -275,7 +274,7 @@ fun ReportCreatorScreen(
                                         )
                                     }
 
-                                    RightPanelTab.VERSIONS -> {
+                                    RightPanelTab.VERSOES -> {
                                         VersionsViewer(
                                             versions = state.versions,
                                             onRestoreVersion = { onIntent(ReportCreatorIntent.OnRestoreVersion(it)) },
@@ -285,6 +284,10 @@ fun ReportCreatorScreen(
                                             },
                                             onFocusRoot = { rootFocusRequester.requestFocus() }
                                         )
+                                    }
+
+                                    RightPanelTab.ERROS -> {
+
                                     }
                                 }
                             }
