@@ -32,6 +32,7 @@ fun SectionSidebar(
     secoesAbertas: Set<String>,
     sectionErrors: List<SectionError>,
     onSelectSection: (String) -> Unit,
+    onSelectError: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
     onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -86,6 +87,7 @@ fun SectionSidebar(
                             onSelectSection(section.id)
                             onFocusRoot()
                         },
+                        onSelectError = onSelectError,
                         onIntent = onIntent,
                         onFocusRoot = onFocusRoot,
                         modifier = Modifier.animateItem()
@@ -235,6 +237,7 @@ private fun SectionSidebarTile(
     secoesAbertas: Set<String>,
     sectionErrors: List<SectionError>,
     onSelect: () -> Unit,
+    onSelectError: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
     onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -310,14 +313,29 @@ private fun SectionSidebarTile(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val hasError = sectionErrors.any { it.sectionId == section.id }
+                    val errorAmount = sectionErrors.count { it.sectionId == section.id }
                     val showWarningInSidebar = secoesAbertas.contains(section.id) && hasError
                     if (showWarningInSidebar) {
-                        Icon(
-                            painter = painterResource(Res.drawable.warning),
-                            contentDescription = "Seção inválida",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(positioning = TooltipAnchorPosition.Below),
+                            tooltip = {
+                                val text = if (errorAmount == 1) "1 erro" else "$errorAmount erros"
+                                PlainTooltip { Text(text) }
+                            },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(
+                                onClick = onSelectError,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.warning),
+                                    contentDescription = "Seção inválida",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                     if (section is ReportSection.Customizada && isHovered) {
                         IconButton(

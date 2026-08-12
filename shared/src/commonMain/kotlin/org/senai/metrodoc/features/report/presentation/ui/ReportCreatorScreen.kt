@@ -168,6 +168,7 @@ fun ReportCreatorScreen(
                     secoesAbertas = state.secoesAbertas,
                     sectionErrors = state.sectionErrors,
                     onSelectSection = { onIntent(ReportCreatorIntent.OnSectionChange(it)) },
+                    onSelectError = { onIntent(ReportCreatorIntent.OnTabChange(RightPanelTab.ERROS)) },
                     onIntent = onIntent,
                     onFocusRoot = { rootFocusRequester.requestFocus() },
                     modifier = Modifier.width(sidebarWidth).fillMaxHeight()
@@ -287,7 +288,10 @@ fun ReportCreatorScreen(
                                     }
 
                                     RightPanelTab.ERROS -> {
-
+                                        ErrorsViewer(
+                                            errors = state.sectionErrors,
+                                            onSelectSection = { onIntent(ReportCreatorIntent.OnSectionChange(it)) },
+                                        )
                                     }
                                 }
                             }
@@ -314,10 +318,29 @@ fun ReportCreatorScreen(
                                     },
                                     shape = RoundedCornerShape(6.dp),
                                 ) {
-                                    Icon(
-                                        painter = painterResource(tab.res),
-                                        contentDescription = tab.name,
-                                    )
+                                    if (tab == RightPanelTab.ERROS) {
+                                        BadgedBox(
+                                            badge = {
+                                                if (state.sectionErrors.isNotEmpty()) {
+                                                    Badge {
+                                                        Text(
+                                                            text = state.sectionErrors.size.toString(),
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(tab.res),
+                                                contentDescription = tab.name,
+                                            )
+                                        }
+                                    } else {
+                                        Icon(
+                                            painter = painterResource(tab.res),
+                                            contentDescription = tab.name,
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -44,12 +44,6 @@ sealed interface ReportSection {
                         )
                     )
                 }
-                if (imagem.path.isBlank()) {
-                    list.add(SectionError(id, titulo, "Foto do Componente", "A foto do componente é obrigatória"))
-                }
-                if (imagem.path.isNotBlank() && imagem.legenda.isBlank()) {
-                    list.add(SectionError(id, titulo, "Legenda da Foto", "A legenda da foto é obrigatória"))
-                }
                 textos.forEach { subTexto ->
                     if (subTexto.titulo.isBlank()) {
                         list.add(
@@ -71,6 +65,12 @@ sealed interface ReportSection {
                             )
                         )
                     }
+                }
+                if (imagem.path.isBlank()) {
+                    list.add(SectionError(id, titulo, "Foto do Componente", "A foto do componente é obrigatória"))
+                }
+                if (imagem.path.isNotBlank() && imagem.legenda.isBlank()) {
+                    list.add(SectionError(id, titulo, "Legenda da Foto", "A legenda da foto é obrigatória"))
                 }
 
                 informacoesExtras.forEachIndexed { index, extra ->
