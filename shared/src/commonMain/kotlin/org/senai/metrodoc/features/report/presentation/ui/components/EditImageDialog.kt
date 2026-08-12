@@ -94,9 +94,7 @@ fun EditImageDialog(
 
     fun undo() {
         if (drawings.isNotEmpty()) {
-            val lastItem = drawings.removeLast()
-
-            when (lastItem) {
+            when (val lastItem = drawings.removeLast()) {
                 is DrawShape.ClearGroup -> {
                     drawings.addAll(lastItem.shapes)
                     redoStack.add(lastItem)
@@ -350,8 +348,7 @@ fun EditImageDialog(
                                                         detectTapGestures(
                                                             onTap = { offset ->
                                                                 val index = drawings.indexOfLast { shape ->
-                                                                    if (shape is DrawShape.Erased || shape is DrawShape.ClearGroup) false
-                                                                    else isPointInsideShape(offset, shape)
+                                                                    !(shape is DrawShape.Erased || shape is DrawShape.ClearGroup) && isPointInsideShape(offset, shape)
                                                                 }
                                                                 if (index != -1) {
                                                                     val removedShape = drawings.removeAt(index)

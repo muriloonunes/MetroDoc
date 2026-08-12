@@ -7,7 +7,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import com.example.compose.*
 import com.jthemedetecor.OsThemeDetector
 
 private val lightScheme = lightColorScheme(

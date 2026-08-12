@@ -21,11 +21,7 @@ import androidx.compose.ui.unit.dp
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.change_history
 import metrodoc.shared.generated.resources.original_pdf
@@ -33,6 +29,7 @@ import metrodoc.shared.generated.resources.preview
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
+import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdf
 import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect
@@ -40,7 +37,6 @@ import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 import org.senai.metrodoc.features.report.presentation.ReportCreatorState
 import org.senai.metrodoc.features.report.presentation.ui.components.*
 import java.awt.Cursor
-import java.awt.Desktop
 
 enum class RightPanelTab(
     val text: String,
@@ -69,30 +65,19 @@ fun ReportCreatorScreen(
     val saverLauncher = rememberFileSaverLauncher(
         dialogSettings = FileKitDialogSettings.createDefault()
     ) { file ->
-        if (file != null) {
-            scope.launch {
-                if (pdfBytesToSave == null) {
-                    onIntent(ReportCreatorIntent.OnGeneratePdf(file.path))
+        scope.savePdf(
+            file = file,
+            getpdfBytes = {pdfBytesToSave},
+            onEnsureBytesGenerated = {
+                file?.path?.let { path ->
+                    onIntent(ReportCreatorIntent.OnGeneratePdf(path))
                 }
-                val bytes = snapshotFlow { pdfBytesToSave }
-                    .filterNotNull()
-                    .first()
-
-                file.write(bytes)
-
-                if (Desktop.isDesktopSupported()) {
-                    try {
-                        Desktop.getDesktop().open(file.file)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-
+            },
+            onSuccess = {
                 pdfBytesToSave = null
-
                 onIntent(ReportCreatorIntent.OnSaveProject)
             }
-        }
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -129,7 +114,7 @@ fun ReportCreatorScreen(
             loadingMessage = "Gerando PDF",
             isCancelable = true,
             onCancelLoading = {
-                onIntent(ReportCreatorIntent.OnEditImageDismissed)
+                onIntent(ReportCreatorIntent.OnCancelGeneration)
             }
         )
     }

@@ -36,20 +36,16 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import metrodoc.shared.generated.resources.Res
 import metrodoc.shared.generated.resources.add
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.database.dto.ProjectDto
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
+import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdf
 import org.senai.metrodoc.common.util.toDateTimeString
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
-import java.awt.Desktop
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 
@@ -84,32 +80,21 @@ fun WelcomeContent(
     val saverLauncher = rememberFileSaverLauncher(
         dialogSettings = FileKitDialogSettings.createDefault()
     ) { file ->
-        if (file != null) {
-            scope.launch {
-                if (pdfBytesToSave == null) {
-
-                    onIntent(WelcomeScreenIntent.OnGeneratePdf(projectIdToExport ?: return@launch))
-                }
-                val bytes = snapshotFlow { pdfBytesToSave }
-                    .filterNotNull()
-                    .first()
-
-                file.write(bytes)
-
-                if (Desktop.isDesktopSupported()) {
-                    try {
-                        Desktop.getDesktop().open(file.file)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-
+        scope.savePdf(
+            file = file,
+            getpdfBytes = { pdfBytesToSave },
+            onEnsureBytesGenerated = {
+                val projectId = projectIdToExport ?: return@savePdf
+                onIntent(WelcomeScreenIntent.OnGeneratePdf(projectId))
+            },
+            onSuccess = {
                 pdfBytesToSave = null
                 projectIdToExport = null
+            },
+            onCancel = {
+                projectIdToExport = null
             }
-        } else {
-            projectIdToExport = null
-        }
+        )
     }
     LaunchedEffect(effect) {
         effect.collect { welcomeEffect ->

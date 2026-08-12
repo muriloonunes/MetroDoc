@@ -1,4 +1,5 @@
-package com.example.compose
+package org.senai.metrodoc.common.theme
+
 import androidx.compose.ui.graphics.Color
 
 val primaryLight = Color(0xFF5D5F5F)

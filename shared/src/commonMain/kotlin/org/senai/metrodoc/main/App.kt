@@ -15,9 +15,7 @@ import org.senai.metrodoc.common.theme.MetroDocTheme
 fun App() {
     val navController = rememberNavController()
     MetroDocTheme {
-        Scaffold(
-
-        ) { paddingValues ->
+        Scaffold { paddingValues ->
             MetroDocNavHost(
                 navController = navController,
                 modifier = Modifier

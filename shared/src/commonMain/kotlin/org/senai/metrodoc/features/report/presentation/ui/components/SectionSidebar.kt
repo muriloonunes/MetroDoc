@@ -8,22 +8,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocAddButton
+import org.senai.metrodoc.common.ui.TitleEditorTextField
 import org.senai.metrodoc.features.report.model.ReportSection
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 
@@ -173,32 +170,12 @@ private fun SectionInlineEditorTile(
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
                     )
                 }
-                BasicTextField(
-                    value = title,
-                    onValueChange = onTitleChange,
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.titleMedium.copy(
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .onPreviewKeyEvent { keyEvent ->
-                            keyEvent.type == KeyEventType.KeyDown && when (keyEvent.key) {
-                                Key.Enter, Key.NumPadEnter -> {
-                                    onConfirm()
-                                    true
-                                }
-
-                                Key.Escape -> {
-                                    onCancel()
-                                    true
-                                }
-
-                                else -> false
-                            }
-                        }
+                TitleEditorTextField(
+                    title = title,
+                    onTitleChange = onTitleChange,
+                    focusRequester = focusRequester,
+                    onConfirm = onConfirm,
+                    onCancel = onCancel
                 )
             }
 

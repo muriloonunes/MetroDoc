@@ -51,7 +51,7 @@ class PdfParser {
         val VERSAO = Regex("\\d+(\\.\\d+)+")
 
         val MEDICAO = Regex(
-            "^([A-Za-z_.-][A-Za-z0-9_.-]*(?:\\s+[A-Za-z0-9_.-]+)*)\\s+(-?\\d+,\\d+)\\s*(mm|inch)?\\s+(-?\\d+,\\d+.*)\$",
+            "^([A-Za-z_.-][A-Za-z0-9_.-]*(?:\\s+[A-Za-z0-9_.-]+)*)\\s+(-?\\d+,\\d+)\\s*(mm|inch)?\\s+(-?\\d+,\\d+.*)$",
             RegexOption.IGNORE_CASE
         )
 

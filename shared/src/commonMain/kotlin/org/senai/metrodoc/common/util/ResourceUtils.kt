@@ -70,12 +70,7 @@ object ResourceUtils {
 
         val finalSkiaImage = Image.makeFromBitmap(targetBitmap.asSkiaBitmap())
 
-        val format = if (mimeType.contains("jpeg") || mimeType.contains("jpg"))
-            EncodedImageFormat.JPEG else EncodedImageFormat.PNG
-
-        val encodedBytes = finalSkiaImage.encodeToData(format, quality)?.bytes ?: return ""
-
-        return "data:$mimeType;base64," + Base64.getEncoder().encodeToString(encodedBytes)
+        return encode(mimeType, finalSkiaImage, quality)
     }
 
     fun localImageWithDrawingsToBase64(
@@ -136,10 +131,18 @@ object ResourceUtils {
 
         val skiaBitmap = targetBitmap.asSkiaBitmap()
         val finalSkiaImage = Image.makeFromBitmap(skiaBitmap)
+        return encode(mimeType, finalSkiaImage, quality)
+    }
+
+    private fun encode(
+        mimeType: String,
+        skiaImage: Image,
+        quality: Int
+    ): String {
         val format = if (mimeType.contains("jpeg") || mimeType.contains("jpg"))
             EncodedImageFormat.JPEG else EncodedImageFormat.PNG
 
-        val encodedBytes = finalSkiaImage.encodeToData(format, quality)?.bytes ?: return ""
+        val encodedBytes = skiaImage.encodeToData(format, quality)?.bytes ?: return ""
 
         return "data:$mimeType;base64," + Base64.getEncoder().encodeToString(encodedBytes)
     }

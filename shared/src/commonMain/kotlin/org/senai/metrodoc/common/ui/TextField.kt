@@ -1,4 +1,5 @@
 package org.senai.metrodoc.common.ui
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,10 +14,51 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+@Composable
+fun TitleEditorTextField(
+    title: TextFieldValue,
+    onTitleChange: (TextFieldValue) -> Unit,
+    focusRequester: FocusRequester,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) =
+    BasicTextField(
+        value = title,
+        onValueChange = onTitleChange,
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .onPreviewKeyEvent { keyEvent ->
+                keyEvent.type == KeyEventType.KeyDown && when (keyEvent.key) {
+                    Key.Enter, Key.NumPadEnter -> {
+                        onConfirm()
+                        true
+                    }
+
+                    Key.Escape -> {
+                        onCancel()
+                        true
+                    }
+
+                    else -> false
+                }
+            }
+    )
 
 @Composable
 fun MetroDocTextField(
@@ -31,9 +73,7 @@ fun MetroDocTextField(
     modifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    MetroDocTextFieldLayout(
+    MetroDocTextFieldBase(
         label = label,
         textIsEmpty = value.isEmpty(),
         textIsBlank = value.isBlank(),
@@ -42,9 +82,9 @@ fun MetroDocTextField(
         enabled = enabled,
         singleLine = singleLine,
         minLines = minLines,
-        interactionSource = interactionSource,
-        modifier = modifier
-    ) {
+        modifier = modifier,
+        textFieldModifier = textFieldModifier
+    ) { textStyle, cursorBrush, interactionSource, finalModifier ->
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -52,12 +92,9 @@ fun MetroDocTextField(
             singleLine = singleLine,
             minLines = minLines,
             interactionSource = interactionSource,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            ),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = textFieldModifier.fillMaxWidth(),
+            textStyle = textStyle,
+            cursorBrush = cursorBrush,
+            modifier = finalModifier,
             decorationBox = { innerTextField -> innerTextField() }
         )
     }
@@ -76,9 +113,7 @@ fun MetroDocTextField(
     modifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    MetroDocTextFieldLayout(
+    MetroDocTextFieldBase(
         label = label,
         textIsEmpty = value.text.isEmpty(),
         textIsBlank = value.text.isBlank(),
@@ -87,9 +122,9 @@ fun MetroDocTextField(
         enabled = enabled,
         singleLine = singleLine,
         minLines = minLines,
-        interactionSource = interactionSource,
-        modifier = modifier
-    ) {
+        modifier = modifier,
+        textFieldModifier = textFieldModifier
+    ) { textStyle, cursorBrush, interactionSource, finalModifier ->
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -97,19 +132,16 @@ fun MetroDocTextField(
             singleLine = singleLine,
             minLines = minLines,
             interactionSource = interactionSource,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            ),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = textFieldModifier.fillMaxWidth(),
+            textStyle = textStyle,
+            cursorBrush = cursorBrush,
+            modifier = finalModifier,
             decorationBox = { innerTextField -> innerTextField() }
         )
     }
 }
 
 @Composable
-private fun MetroDocTextFieldLayout(
+private fun MetroDocTextFieldBase(
     label: String,
     textIsEmpty: Boolean,
     textIsBlank: Boolean,
@@ -118,10 +150,16 @@ private fun MetroDocTextFieldLayout(
     enabled: Boolean,
     singleLine: Boolean,
     minLines: Int,
-    interactionSource: MutableInteractionSource,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    modifier: Modifier,
+    textFieldModifier: Modifier,
+    content: @Composable (
+        textStyle: TextStyle,
+        cursorBrush: Brush,
+        interactionSource: MutableInteractionSource,
+        modifier: Modifier
+    ) -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     val isError = isRequired && textIsBlank && enabled
     val isFocused by interactionSource.collectIsFocusedAsState()
 
@@ -136,6 +174,13 @@ private fun MetroDocTextFieldLayout(
         isFocused -> MaterialTheme.colorScheme.surface
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
+
+    val textStyle = MaterialTheme.typography.bodyLarge.copy(
+        color = if (enabled) MaterialTheme.colorScheme.onSurface
+        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    )
+
+    val cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
 
     Column(modifier = modifier) {
         if (label.isNotEmpty()) {
@@ -180,7 +225,13 @@ private fun MetroDocTextFieldLayout(
                     fontSize = 13.sp
                 )
             }
-            content()
+
+            content(
+                textStyle,
+                cursorBrush,
+                interactionSource,
+                textFieldModifier.fillMaxWidth()
+            )
         }
     }
 }
