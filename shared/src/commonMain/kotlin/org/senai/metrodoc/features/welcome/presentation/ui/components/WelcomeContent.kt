@@ -1,7 +1,11 @@
 package org.senai.metrodoc.features.welcome.presentation.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -20,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.awtTransferable
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -74,6 +79,7 @@ fun WelcomeContent(
     val scope = rememberCoroutineScope()
     var pdfBytesToSave by remember { mutableStateOf<ByteArray?>(null) }
     var projectIdToExport by remember { mutableStateOf<Long?>(null) }
+    var isDraggingOver by remember { mutableStateOf(false) }
 
     val saverLauncher = rememberFileSaverLauncher(
         dialogSettings = FileKitDialogSettings.createDefault()
@@ -129,20 +135,35 @@ fun WelcomeContent(
 
     val dragAndDropTarget = remember {
         object : DragAndDropTarget {
+            override fun onEntered(event: DragAndDropEvent) {
+                isDraggingOver = true
+                super.onEntered(event)
+            }
+
+            override fun onExited(event: DragAndDropEvent) {
+                isDraggingOver = false
+                super.onExited(event)
+            }
+
             override fun onDrop(event: DragAndDropEvent): Boolean {
+                isDraggingOver = false
                 val awtTransferable = event.awtTransferable
                 if (awtTransferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                    val files =
-                        awtTransferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<File> ?: return false
-                    if (files.size > 1) {
-                        return false
-                    }
+                    val data = awtTransferable.getTransferData(DataFlavor.javaFileListFlavor)
+                    if (data !is List<*>) return false
+
+                    val files = data.filterIsInstance<File>()
+                    if (files.size > 1) return false
+
                     val pdfFile = files.firstOrNull { it.extension.lowercase() == "pdf" }
                     if (pdfFile != null) {
-                        onIntent(WelcomeScreenIntent.OnFileSelected(
-                            path = pdfFile.absolutePath,
-                            name = pdfFile.name
-                        ))
+                        onIntent(
+                            WelcomeScreenIntent.OnFileSelected(
+                                path = pdfFile.absolutePath,
+                                name = pdfFile.name
+                            )
+                        )
+                        return true
                     }
                 }
                 return false
@@ -150,141 +171,191 @@ fun WelcomeContent(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
             .dragAndDropTarget(
                 shouldStartDragAndDrop = { true },
-                target = dragAndDropTarget,
-            ),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+                target = dragAndDropTarget
+            )
     ) {
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val interactionSource = remember { MutableInteractionSource() }
-            val isHovered by interactionSource.collectIsHoveredAsState()
-            val scale by animateFloatAsState(
-                targetValue = if (isHovered) 1.08f else 1.0f,
-                label = "buttonScale"
-            )
-
-            Text(
-                text = "Bem-vindo!",
-                style = MaterialTheme.typography.headlineMedium,
-            )
-
-            Text(
-                text = "Selecione um PDF para iniciar a estruturação do relatório",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            MediumFloatingActionButton(
-                onClick = { onIntent(WelcomeScreenIntent.OnOpenFileButtonClicked) },
-                interactionSource = interactionSource,
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier
-                    .scale(scale)
-                    .dashedBorder(
-                        width = Dp.Hairline,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(10.dp),
-                        on = if (isHovered) 5.dp else 5.dp,
-                        off = if (isHovered) 0.dp else 10.dp
-                    )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    painter = painterResource(Res.drawable.add),
-                    contentDescription = "Abrir PDF"
+                val interactionSource = remember { MutableInteractionSource() }
+                val isHovered by interactionSource.collectIsHoveredAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isHovered) 1.08f else 1.0f,
+                    label = "buttonScale"
                 )
-            }
-        }
-        Spacer(modifier = Modifier.height(32.dp))
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
-                    text = "Projetos recentes",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Bem-vindo!",
+                    style = MaterialTheme.typography.headlineMedium,
                 )
-                if (projetosRecentes.isNotEmpty()) {
-                    TextButton(onClick = {
-                        onIntent(WelcomeScreenIntent.OnRequestDeleteAllProjects)
-                    }) {
-                        Text("Limpar recentes", fontSize = 12.sp)
-                    }
+
+                Text(
+                    text = "Selecione um PDF para iniciar a estruturação do relatório",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MediumFloatingActionButton(
+                    onClick = { onIntent(WelcomeScreenIntent.OnOpenFileButtonClicked) },
+                    interactionSource = interactionSource,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .scale(scale)
+                        .dashedBorder(
+                            width = Dp.Hairline,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(10.dp),
+                            on = if (isHovered) 5.dp else 5.dp,
+                            off = if (isHovered) 0.dp else 10.dp
+                        )
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.add),
+                        contentDescription = "Abrir PDF"
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Box(modifier = Modifier.fillMaxSize()) {
-                val gridState = rememberLazyGridState()
-                if (carregandoProjetos) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                } else if (projetosRecentes.isNotEmpty()) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 320.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        state = gridState,
-                        modifier = Modifier.fillMaxSize().padding(end = 12.dp)
-                    ) {
-                        items(projetosRecentes) { projeto ->
-                            val data = projeto.modificadoEm.toDateTimeString()
-                            RecentProjectCard(
-                                projectName = projeto.nomeProjeto,
-                                lastModified = data,
-                                onOpenProject = {
-                                    onIntent(WelcomeScreenIntent.OnProjectSelected(projeto.id))
-                                },
-                                onExportPdf = {
-                                    projectIdToExport = projeto.id
-                                    saverLauncher.launch(
-                                        suggestedName = "${projeto.nomeProjeto}.pdf",
-                                        defaultExtension = "pdf",
-                                        allowedExtensions = setOf("pdf")
-                                    )
-                                },
-                                onDeleteFile = {
-                                    onIntent(WelcomeScreenIntent.OnRequestDeleteProject(projeto))
-                                }
-                            )
+            Spacer(modifier = Modifier.height(32.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Projetos recentes",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (projetosRecentes.isNotEmpty()) {
+                        TextButton(onClick = {
+                            onIntent(WelcomeScreenIntent.OnRequestDeleteAllProjects)
+                        }) {
+                            Text("Limpar recentes", fontSize = 12.sp)
                         }
                     }
-                    VerticalScrollbar(
-                        adapter = rememberScrollbarAdapter(scrollState = gridState),
-                        style = metroDocDefaultScrollbarStyle(),
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
-                } else {
-                    Text(
-                        text = "Nenhum projeto recente",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val gridState = rememberLazyGridState()
+                    if (carregandoProjetos) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    } else if (projetosRecentes.isNotEmpty()) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 320.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            state = gridState,
+                            modifier = Modifier.fillMaxSize().padding(end = 12.dp)
+                        ) {
+                            items(projetosRecentes) { projeto ->
+                                val data = projeto.modificadoEm.toDateTimeString()
+                                RecentProjectCard(
+                                    projectName = projeto.nomeProjeto,
+                                    lastModified = data,
+                                    onOpenProject = {
+                                        onIntent(WelcomeScreenIntent.OnProjectSelected(projeto.id))
+                                    },
+                                    onExportPdf = {
+                                        projectIdToExport = projeto.id
+                                        saverLauncher.launch(
+                                            suggestedName = "${projeto.nomeProjeto}.pdf",
+                                            defaultExtension = "pdf",
+                                            allowedExtensions = setOf("pdf")
+                                        )
+                                    },
+                                    onDeleteFile = {
+                                        onIntent(WelcomeScreenIntent.OnRequestDeleteProject(projeto))
+                                    }
+                                )
+                            }
+                        }
+                        VerticalScrollbar(
+                            adapter = rememberScrollbarAdapter(scrollState = gridState),
+                            style = metroDocDefaultScrollbarStyle(),
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
+                    } else {
+                        Text(
+                            text = "Nenhum projeto recente",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.TopCenter)
+                        )
+                    }
 
+                }
+            }
+        }
+        AnimatedVisibility(
+            visible = isDraggingOver,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.90f))
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.15f))
+                        .dashedBorder(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(24.dp),
+                            on = 12.dp,
+                            off = 8.dp
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.add),
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Solte o arquivo PDF aqui",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }
-
 }
