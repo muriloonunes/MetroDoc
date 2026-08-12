@@ -29,6 +29,7 @@ import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
 import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdf
 import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
+import org.senai.metrodoc.features.report.model.SavedState
 import org.senai.metrodoc.features.report.presentation.ReportCreatorEffect
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 import org.senai.metrodoc.features.report.presentation.ReportCreatorState
@@ -136,7 +137,18 @@ fun ReportCreatorScreen(
             .focusRequester(rootFocusRequester)
             .focusable()
             .onKeyEvent { keyEvent ->
-                keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    if ((keyEvent.isCtrlPressed || keyEvent.isMetaPressed) && keyEvent.key == Key.S) {
+                        if (state.reportSaveState == SavedState.Unsaved) {
+                            onIntent(ReportCreatorIntent.OnSaveProject)
+                        }
+                        return@onKeyEvent true
+                    }
+                    if (keyEvent.key == Key.Escape) {
+                        return@onKeyEvent true
+                    }
+                }
+                false
             }
     ) {
         TopToolbar(
