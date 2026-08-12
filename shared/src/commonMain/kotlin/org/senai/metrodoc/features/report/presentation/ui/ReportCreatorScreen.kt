@@ -169,6 +169,7 @@ fun ReportCreatorScreen(
                     selectedId = state.secaoAtivaId,
                     onSelectSection = { onIntent(ReportCreatorIntent.OnSectionChange(it)) },
                     onIntent = onIntent,
+                    isReportDataValid = state.currentReport?.isValid ?: false,
                     onFocusRoot = { rootFocusRequester.requestFocus() },
                     modifier = Modifier.width(sidebarWidth).fillMaxHeight()
                 )

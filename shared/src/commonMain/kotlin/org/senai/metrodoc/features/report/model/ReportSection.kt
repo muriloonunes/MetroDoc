@@ -86,10 +86,9 @@ sealed interface ReportSection {
         override val titulo: String = "Identificação da Medição",
         override val removivel: Boolean = false,
         override val movivel: Boolean = false,
-        @Transient val reportData: ReportData = ReportData(),
     ) : ReportSection {
         override val isValid: Boolean
-            get() = reportData.isValid
+            get() = true
     }
 
     @Serializable

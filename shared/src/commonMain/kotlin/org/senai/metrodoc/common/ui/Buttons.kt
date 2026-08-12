@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import metrodoc.shared.generated.resources.Res
@@ -21,6 +22,7 @@ import org.senai.metrodoc.features.welcome.presentation.ui.components.dashedBord
 @Composable
 fun MetroDocAddButton(
     text: String,
+    borderColor: Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -39,7 +41,7 @@ fun MetroDocAddButton(
             .heightIn(min = 50.dp)
             .dashedBorder(
                 width = Dp.Hairline,
-                color = MaterialTheme.colorScheme.primary,
+                color = borderColor,
                 shape = RoundedCornerShape(10.dp),
                 on = if (isHovered) 5.dp else 5.dp,
                 off = if (isHovered) 0.dp else 10.dp

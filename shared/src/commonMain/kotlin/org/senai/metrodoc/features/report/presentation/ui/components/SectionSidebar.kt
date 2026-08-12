@@ -30,6 +30,7 @@ fun SectionSidebar(
     selectedId: String?,
     onSelectSection: (String) -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
+    isReportDataValid: Boolean = true,
     onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -73,6 +74,7 @@ fun SectionSidebar(
                         index = index,
                         totalCount = secoes.size,
                         isSelected = selectedId == section.id,
+                        isReportDataValid = isReportDataValid,
                         onSelect = {
                             if (isAddingSection) {
                                 isAddingSection = false
@@ -229,6 +231,7 @@ private fun SectionSidebarTile(
     isSelected: Boolean,
     onSelect: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
+    isReportDataValid: Boolean = true,
     onFocusRoot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -299,7 +302,18 @@ private fun SectionSidebarTile(
                     modifier = Modifier.weight(1f)
                 )
 
-                Row {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val isTileValid = if (section is ReportSection.Identificacao) isReportDataValid else section.isValid
+                    if (!isTileValid) {
+                        Icon(
+                            painter = painterResource(Res.drawable.warning),
+                            contentDescription = "Seção inválida",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     if (section is ReportSection.Customizada && isHovered) {
                         IconButton(
                             onClick = {

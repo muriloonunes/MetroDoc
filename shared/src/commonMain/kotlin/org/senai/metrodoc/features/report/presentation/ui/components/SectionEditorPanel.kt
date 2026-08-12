@@ -428,10 +428,11 @@ fun IntroducaoSectionEditor(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                 modifier = Modifier.padding(vertical = 2.dp)
             )
+            val hasImage = introducao.imagem.path.isNotBlank()
             Text(
-                text = "Foto do Componente",
+                text = "Foto do Componente*",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                color = if (hasImage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -440,7 +441,8 @@ fun IntroducaoSectionEditor(
             ) {
                 MetroDocAddButton(
                     onClick = { imageLauncher.launch() },
-                    text = if (introducao.imagem.path.isBlank()) "Selecionar Imagem" else "Alterar Imagem",
+                    borderColor = if (hasImage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    text = if (hasImage) "Alterar Imagem" else "Selecionar Imagem",
                     modifier = Modifier.weight(1f)
                 )
                 if (introducao.imagem.path.isNotBlank()) {
@@ -484,7 +486,6 @@ fun IntroducaoSectionEditor(
                 placeholder = "Peça em medição na MMC",
                 value = introducao.imagem.legenda,
                 enabled = introducao.imagem.path.isNotBlank(),
-                isRequired = introducao.imagem.path.isNotBlank(),
                 onValueChange = { onDataChanged(introducao.copy(imagem = introducao.imagem.copy(legenda = it))) },
                 modifier = Modifier.fillMaxWidth()
             )

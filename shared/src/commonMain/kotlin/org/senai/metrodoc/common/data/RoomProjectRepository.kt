@@ -67,7 +67,6 @@ class RoomProjectRepositoryImpl(
 
         val secoesReconstruidas = decodedSecoes.map { secao ->
             when (secao) {
-                is ReportSection.Identificacao -> secao.copy(reportData = reportDataDomain)
                 is ReportSection.ResultadosDimensionais -> secao.copy(measurements = reportDataDomain.caracteristicas)
                 else -> secao
             }

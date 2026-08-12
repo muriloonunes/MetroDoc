@@ -36,7 +36,7 @@ class ReportCreatorViewModel(
         val currentReport = memoryReportRepository.currentReport.value
         val initialSections = listOf(
             ReportSection.Introducao(),
-            ReportSection.Identificacao(reportData = currentReport ?: ReportData()),
+            ReportSection.Identificacao(),
             ReportSection.ResultadosDimensionais(measurements = currentReport?.caracteristicas ?: emptyList()),
             ReportSection.InterpretacaoResultados(),
             ReportSection.Conclusao(),
