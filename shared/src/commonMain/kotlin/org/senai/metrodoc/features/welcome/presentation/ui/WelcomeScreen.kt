@@ -1,11 +1,14 @@
 package org.senai.metrodoc.features.welcome.presentation.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.Flow
+import org.senai.metrodoc.common.ui.ConfirmDialog
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
+import org.senai.metrodoc.common.ui.MetroDocPrimaryButton
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
 import org.senai.metrodoc.features.welcome.presentation.WelcomeViewState
@@ -14,6 +17,7 @@ import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.Con
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.ConfirmDeleteProjectDialog
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.ReportDataDialog
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WelcomeScreen(
     state: WelcomeViewState,
@@ -43,6 +47,36 @@ fun WelcomeScreen(
                 isCancelable = true,
                 onCancelLoading = {
                     onIntent(WelcomeScreenIntent.OnCancelGeneration)
+                }
+            )
+        }
+
+        if (state.showProjectWithErrorsDialog) {
+            ConfirmDialog(
+                title = "Relatório com pendências",
+                description = "Este relatório possui campos obrigatórios em branco. Para emitir o PDF, é necessário corrigir as pendências no editor.",
+                onDismiss = {onIntent(WelcomeScreenIntent.OnDismissProjectWithErrorDialog) },
+                buttons = {
+                    TextButton(
+                        onClick = { onIntent(WelcomeScreenIntent.OnDismissProjectWithErrorDialog) },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        shape = ButtonDefaults.squareShape
+                    ) {
+                        Text(
+                            text = "Cancelar",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    MetroDocPrimaryButton(
+                        onClick = { onIntent(WelcomeScreenIntent.OnConfirmFixProjectWithError) },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = "Abrir no editor",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             )
         }

@@ -12,6 +12,7 @@ import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.common.util.PdfParser
 import org.senai.metrodoc.features.report.data.MemoryReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
+import org.senai.metrodoc.features.report.model.ReportSection
 
 class WelcomeScreenViewModel(
     private val roomProjectRepository: RoomProjectRepository,
@@ -172,6 +173,20 @@ class WelcomeScreenViewModel(
                     _state.update { it.copy(isGeneratingPdf = true) }
                     try {
                         val projeto = roomProjectRepository.getProjectById(intent.id) ?: return@launch
+                        val erros = projeto.secoes.flatMap { secao ->
+                            if (secao is ReportSection.Identificacao) {
+                                projeto.reportData.getErrors(secao.id, secao.titulo)
+                            } else secao.errors
+                        }
+                        if (erros.isNotEmpty()) {
+                            _state.update {
+                                it.copy(
+                                    showProjectWithErrorsDialog = true,
+                                    projectWithErrorsId = intent.id
+                                )
+                            }
+                            return@launch
+                        }
                         val bytes = pdfGenerator.generatePdfBytes(
                             reportData = projeto.reportData,
                             secoes = projeto.secoes,
@@ -187,6 +202,35 @@ class WelcomeScreenViewModel(
                             it.copy(isGeneratingPdf = false)
                         }
                     }
+                }
+            }
+
+            WelcomeScreenIntent.OnDismissProjectWithErrorDialog -> {
+                _state.update {
+                    it.copy(
+                        showProjectWithErrorsDialog = false,
+                        projectWithErrorsId = null
+                    )
+                }
+            }
+
+            WelcomeScreenIntent.OnConfirmFixProjectWithError -> {
+                val targetProjectId = _state.value.projectWithErrorsId
+                _state.update {
+                    it.copy(
+                        showProjectWithErrorsDialog = false,
+                        projectWithErrorsId = null
+                    )
+                }
+
+                if (targetProjectId != null) {
+                    sendEffect(
+                        WelcomeEffect.NavigateToRelatoryCreator(
+                            reportId = targetProjectId,
+                            path = "",
+                            pdfName = ""
+                        )
+                    )
                 }
             }
 

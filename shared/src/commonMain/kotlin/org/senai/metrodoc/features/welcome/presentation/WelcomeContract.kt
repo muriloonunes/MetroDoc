@@ -16,6 +16,8 @@ data class WelcomeViewState(
     val showReportDialog: Boolean = false,
     val isGeneratingPdf: Boolean = false,
     val projectToDelete: ProjectDto? = null,
+    val showProjectWithErrorsDialog: Boolean = false,
+    val projectWithErrorsId: Long? = null,
     val showDeleteAllProjectsDialog: Boolean = false,
 ) {
     val isFormValid: Boolean
@@ -58,6 +60,9 @@ sealed interface WelcomeScreenIntent {
 
     data class OnGeneratePdf(val id: Long) : WelcomeScreenIntent
     data object OnCancelGeneration : WelcomeScreenIntent
+
+    data object OnDismissProjectWithErrorDialog : WelcomeScreenIntent
+    data object OnConfirmFixProjectWithError : WelcomeScreenIntent
 
     data object OnConfirmData : WelcomeScreenIntent
     data object OnDismissReportDialog : WelcomeScreenIntent
