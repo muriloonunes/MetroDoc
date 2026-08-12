@@ -2,6 +2,7 @@ package org.senai.metrodoc.features.welcome.presentation.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
@@ -14,7 +15,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.awtTransferable
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,8 +45,10 @@ import org.senai.metrodoc.common.util.toDateTimeString
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
 import java.awt.Desktop
+import java.awt.datatransfer.DataFlavor
+import java.io.File
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun WelcomeContent(
     projetosRecentes: List<ProjectDto>,
@@ -120,10 +127,37 @@ fun WelcomeContent(
         }
     }
 
+    val dragAndDropTarget = remember {
+        object : DragAndDropTarget {
+            override fun onDrop(event: DragAndDropEvent): Boolean {
+                val awtTransferable = event.awtTransferable
+                if (awtTransferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                    val files =
+                        awtTransferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<File> ?: return false
+                    if (files.size > 1) {
+                        return false
+                    }
+                    val pdfFile = files.firstOrNull { it.extension.lowercase() == "pdf" }
+                    if (pdfFile != null) {
+                        onIntent(WelcomeScreenIntent.OnFileSelected(
+                            path = pdfFile.absolutePath,
+                            name = pdfFile.name
+                        ))
+                    }
+                }
+                return false
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .dragAndDropTarget(
+                shouldStartDragAndDrop = { true },
+                target = dragAndDropTarget,
+            ),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
