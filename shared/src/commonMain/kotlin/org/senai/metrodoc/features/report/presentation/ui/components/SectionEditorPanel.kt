@@ -1,6 +1,7 @@
 package org.senai.metrodoc.features.report.presentation.ui.components
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -10,10 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -32,16 +37,11 @@ import org.senai.metrodoc.common.ui.MetroDocAddButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedIconButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
-import org.senai.metrodoc.features.report.model.Imagem
-import org.senai.metrodoc.features.report.model.ReportBlock
-import org.senai.metrodoc.features.report.model.ReportData
-import org.senai.metrodoc.features.report.model.ReportSection
+import org.senai.metrodoc.features.report.model.*
 import org.senai.metrodoc.features.report.presentation.ReportCreatorIntent
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.PaginaIdentificacao
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.TableGridHeader
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.components.MeasurementTableRow
-
-import org.senai.metrodoc.features.report.model.PdfItem
 
 @Composable
 fun SectionEditorPanel(
@@ -50,46 +50,97 @@ fun SectionEditorPanel(
     pdfItems: List<PdfItem> = emptyList(),
     activePdfIndex: Int = 0,
     onSelectPdfItem: (Int) -> Unit = {},
-    onFocusRoot: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
+    onFocusRoot: () -> Unit,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (pdfItems.size > 1) {
-            SecondaryScrollableTabRow(
-                selectedTabIndex = activePdfIndex,
-                edgePadding = 0.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                pdfItems.forEachIndexed { index, item ->
-                    val isSelected = index == activePdfIndex
-                    val hasError = !item.isValid && item.isTouched
-                    Tab(
-                        selected = isSelected,
-                        onClick = { onSelectPdfItem(index) },
-                        text = {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = item.pdfName.ifBlank { "PDF #${index + 1}" },
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                                if (hasError && !isSelected) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                    ) {
-                                        Text("!", style = MaterialTheme.typography.labelSmall)
+            val tabScrollState = rememberScrollState()
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(tabScrollState)
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.type == PointerEventType.Scroll) {
+                                        val deltaY = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                                        if (deltaY != 0f) {
+                                            coroutineScope.launch {
+                                                tabScrollState.scrollBy(deltaY * 50f)
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
-                    )
+                        },
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    pdfItems.forEachIndexed { index, item ->
+                        val isSelected = index == activePdfIndex
+                        val hasError = !item.isValid && item.isTouched
+                        val primary = MaterialTheme.colorScheme.primary
+                        Tab(
+                            selected = isSelected,
+                            onClick = { onSelectPdfItem(index) },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .drawWithContent {
+                                    drawContent()
+                                    if (isSelected) {
+                                        val strokeWidth = 3.dp.toPx()
+                                        drawLine(
+                                            color = primary,
+                                            start = Offset(
+                                                0f,
+                                                size.height - strokeWidth / 2
+                                            ),
+                                            end = Offset(
+                                                size.width,
+                                                size.height - strokeWidth / 2
+                                            ),
+                                            strokeWidth = strokeWidth
+                                        )
+                                    }
+                                },
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = item.pdfName.ifBlank { "PDF #${index + 1}" },
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                    if (hasError && !isSelected) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                        ) {
+                                            Text("!", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
+
+                HorizontalScrollbar(
+                    adapter = rememberScrollbarAdapter(tabScrollState),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    style = metroDocDefaultScrollbarStyle()
+                )
             }
         }
         var editarTitulo by remember(section.hashCode()) { mutableStateOf(false) }
