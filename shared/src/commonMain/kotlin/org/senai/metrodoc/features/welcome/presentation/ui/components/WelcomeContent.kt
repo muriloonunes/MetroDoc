@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.name
@@ -43,6 +44,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.database.dto.ProjectDto
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdf
+import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdfsBatch
 import org.senai.metrodoc.common.util.toDateTimeString
 import org.senai.metrodoc.features.welcome.presentation.WelcomeEffect
 import org.senai.metrodoc.features.welcome.presentation.WelcomeScreenIntent
@@ -60,42 +62,79 @@ fun WelcomeContent(
 ) {
     val pickerLauncher = rememberFilePickerLauncher(
         type = FileKitType.File("pdf"),
-        mode = FileKitMode.Single
-    ) { file ->
-        file?.let {
-            onIntent(
-                WelcomeScreenIntent.OnFileSelected(
-                    path = it.path,
-                    name = it.name
-                )
-            )
+        mode = FileKitMode.Multiple(),
+        onError = {},
+        onResult = { files ->
+            files?.let { list ->
+                if (list.size == 1) {
+                    val item = list.first()
+                    onIntent(
+                        WelcomeScreenIntent.OnFileSelected(
+                            path = item.path,
+                            name = item.name
+                        )
+                    )
+                } else if (list.isNotEmpty()) {
+                    onIntent(
+                        WelcomeScreenIntent.OnMultipleFilesSelected(
+                            files = list.map { file -> file.path to file.name }
+                        )
+                    )
+                }
+            }
         }
-    }
+    )
 
     val scope = rememberCoroutineScope()
     var pdfBytesToSave by remember { mutableStateOf<ByteArray?>(null) }
+    var batchPdfBytesToSave by remember { mutableStateOf<List<Pair<String, ByteArray>>?>(null) }
     var projectIdToExport by remember { mutableStateOf<Long?>(null) }
     var isDraggingOver by remember { mutableStateOf(false) }
 
     val saverLauncher = rememberFileSaverLauncher(
-        dialogSettings = FileKitDialogSettings.createDefault()
-    ) { file ->
-        scope.savePdf(
-            file = file,
-            getpdfBytes = { pdfBytesToSave },
-            onEnsureBytesGenerated = {
-                val projectId = projectIdToExport ?: return@savePdf
-                onIntent(WelcomeScreenIntent.OnGeneratePdf(projectId))
-            },
-            onSuccess = {
-                pdfBytesToSave = null
-                projectIdToExport = null
-            },
-            onCancel = {
-                projectIdToExport = null
-            }
-        )
-    }
+        dialogSettings = FileKitDialogSettings.createDefault(),
+        onError = {},
+        onResult = { file ->
+            scope.savePdf(
+                file = file,
+                getpdfBytes = { pdfBytesToSave },
+                onEnsureBytesGenerated = {
+                    val projectId = projectIdToExport ?: return@savePdf
+                    onIntent(WelcomeScreenIntent.OnGeneratePdf(projectId))
+                },
+                onSuccess = {
+                    pdfBytesToSave = null
+                    projectIdToExport = null
+                },
+                onCancel = {
+                    projectIdToExport = null
+                }
+            )
+        }
+    )
+
+    val batchSaverLauncher = rememberDirectoryPickerLauncher(
+        dialogSettings = FileKitDialogSettings.createDefault(),
+        onError = {},
+        onResult = { directory ->
+            scope.savePdfsBatch(
+                directory = directory,
+                getPdfBytesList = { batchPdfBytesToSave },
+                onEnsureBytesGenerated = {
+                    val projectId = projectIdToExport ?: return@savePdfsBatch
+                    onIntent(WelcomeScreenIntent.OnGenerateBatchPdfs(projectId))
+                },
+                onSuccess = {
+                    batchPdfBytesToSave = null
+                    projectIdToExport = null
+                },
+                onCancel = {
+                    projectIdToExport = null
+                }
+            )
+        }
+    )
+
     LaunchedEffect(effect) {
         effect.collect { welcomeEffect ->
             when (welcomeEffect) {
@@ -111,8 +150,26 @@ fun WelcomeContent(
                     )
                 }
 
+                is WelcomeEffect.TriggerSingleExportFileSaver -> {
+                    projectIdToExport = welcomeEffect.projectId
+                    saverLauncher.launch(
+                        suggestedName = welcomeEffect.suggestedName,
+                        defaultExtension = "pdf",
+                        allowedExtensions = setOf("pdf")
+                    )
+                }
+
+                is WelcomeEffect.TriggerBatchExportDirectoryPicker -> {
+                    projectIdToExport = welcomeEffect.projectId
+                    batchSaverLauncher.launch()
+                }
+
                 is WelcomeEffect.OnPdfGenerated -> {
                     pdfBytesToSave = welcomeEffect.bytes
+                }
+
+                is WelcomeEffect.OnBatchPdfsGenerated -> {
+                    batchPdfBytesToSave = welcomeEffect.files
                 }
             }
         }
@@ -138,16 +195,23 @@ fun WelcomeContent(
                     if (data !is List<*>) return false
 
                     val files = data.filterIsInstance<File>()
-                    if (files.size > 1) return false
-
-                    val pdfFile = files.firstOrNull { it.extension.lowercase() == "pdf" }
-                    if (pdfFile != null) {
-                        onIntent(
-                            WelcomeScreenIntent.OnFileSelected(
-                                path = pdfFile.absolutePath,
-                                name = pdfFile.name
+                    val pdfFiles = files.filter { it.extension.lowercase() == "pdf" }
+                    if (pdfFiles.isNotEmpty()) {
+                        if (pdfFiles.size == 1) {
+                            val pdfFile = pdfFiles.first()
+                            onIntent(
+                                WelcomeScreenIntent.OnFileSelected(
+                                    path = pdfFile.absolutePath,
+                                    name = pdfFile.name
+                                )
                             )
-                        )
+                        } else {
+                            onIntent(
+                                WelcomeScreenIntent.OnMultipleFilesSelected(
+                                    files = pdfFiles.map { it.absolutePath to it.name }
+                                )
+                            )
+                        }
                         return true
                     }
                 }
@@ -187,7 +251,7 @@ fun WelcomeContent(
                 )
 
                 Text(
-                    text = "Selecione um PDF para iniciar a estruturação do relatório",
+                    text = "Selecione um ou mais PDFs para iniciar a estruturação do relatório",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -266,12 +330,7 @@ fun WelcomeContent(
                                         onIntent(WelcomeScreenIntent.OnProjectSelected(projeto.id))
                                     },
                                     onExportPdf = {
-                                        projectIdToExport = projeto.id
-                                        saverLauncher.launch(
-                                            suggestedName = "${projeto.nomeProjeto}.pdf",
-                                            defaultExtension = "pdf",
-                                            allowedExtensions = setOf("pdf")
-                                        )
+                                        onIntent(WelcomeScreenIntent.OnRequestExportProject(projeto))
                                     },
                                     onDeleteFile = {
                                         onIntent(WelcomeScreenIntent.OnRequestDeleteProject(projeto))

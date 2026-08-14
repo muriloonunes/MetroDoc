@@ -33,23 +33,59 @@ class ReportCreatorViewModel(
     private var previewJob: Job? = null
 
     init {
-        val currentReport = memoryReportRepository.currentReport.value
-        val initialSections = listOf(
-            ReportSection.Introducao(),
-            ReportSection.Identificacao(),
-            ReportSection.ResultadosDimensionais(measurements = currentReport?.caracteristicas ?: emptyList()),
-            ReportSection.InterpretacaoResultados(),
-            ReportSection.Conclusao(),
-        )
-        val initialSectionId = initialSections.firstOrNull()?.id
+        val memoryBatch = memoryReportRepository.currentProjectData.value
+        val memorySingle = memoryReportRepository.currentReport.value
 
-        _state.update {
-            it.copy(
-                currentReport = currentReport,
-                secoes = initialSections,
-                secaoAtivaId = initialSectionId,
-                secoesAbertas = initialSectionId?.let { id -> setOf(id) } ?: emptySet()
+        if (memoryBatch != null && memoryBatch.pdfItems.isNotEmpty()) {
+            val initialItems = memoryBatch.pdfItems.mapIndexed { idx, item ->
+                if (idx == 0) item.copy(isTouched = true) else item
+            }
+            val activeItem = initialItems.first()
+
+            _state.update {
+                it.copy(
+                    cliente = memoryBatch.cliente,
+                    componente = memoryBatch.componente,
+                    pdfItems = initialItems,
+                    activePdfIndex = 0,
+                    pdfPath = activeItem.pdfPath,
+                    pdfName = activeItem.pdfName,
+                    reportName = "Projeto ${memoryBatch.cliente} — ${memoryBatch.componente}",
+                    currentReport = activeItem.reportData,
+                    secoes = activeItem.secoes,
+                    secaoAtivaId = activeItem.secoes.firstOrNull()?.id,
+                    secoesAbertas = activeItem.secoes.firstOrNull()?.id?.let { id -> setOf(id) } ?: emptySet()
+                )
+            }
+        } else if (memorySingle != null) {
+            val initialSections = listOf(
+                ReportSection.Introducao(),
+                ReportSection.Identificacao(),
+                ReportSection.ResultadosDimensionais(measurements = memorySingle.caracteristicas),
+                ReportSection.InterpretacaoResultados(),
+                ReportSection.Conclusao(),
             )
+            val initialItem = PdfItem(
+                pdfPath = "",
+                pdfName = memorySingle.componente,
+                reportData = memorySingle,
+                secoes = initialSections,
+                isTouched = true
+            )
+            val initialSectionId = initialSections.firstOrNull()?.id
+
+            _state.update {
+                it.copy(
+                    cliente = memorySingle.cliente,
+                    componente = memorySingle.componente,
+                    pdfItems = listOf(initialItem),
+                    activePdfIndex = 0,
+                    currentReport = memorySingle,
+                    secoes = initialSections,
+                    secaoAtivaId = initialSectionId,
+                    secoesAbertas = initialSectionId?.let { id -> setOf(id) } ?: emptySet()
+                )
+            }
         }
 
         viewModelScope.launch {
@@ -62,7 +98,6 @@ class ReportCreatorViewModel(
                     }
                 }
         }
-
 
         viewModelScope.launch {
             _state.map { it.reportId }
@@ -92,35 +127,67 @@ class ReportCreatorViewModel(
                 val savedId = intent.reportId
 
                 if (savedId != null) {
-                    //se o savedId não for nulo, significa que o relatório já foi salvo
                     viewModelScope.launch {
                         val savedProject = roomProjectRepository.getProjectById(savedId)
-                        if (savedProject != null) {
+                        if (savedProject != null && savedProject.pdfItems.isNotEmpty()) {
+                            val items = savedProject.pdfItems.mapIndexed { idx, item ->
+                                if (idx == 0) item.copy(isTouched = true) else item
+                            }
+                            val firstItem = items.first()
+
                             _state.update { currentState ->
                                 currentState.copy(
                                     reportId = savedProject.projectId,
                                     isInitializing = false,
-                                    pdfPath = savedProject.pdfPath,
-                                    pdfName = savedProject.pdfName,
-                                    reportName = savedProject.reportName,
-                                    currentReport = savedProject.reportData,
-                                    secoes = savedProject.secoes,
-                                    secaoAtivaId = savedProject.secoes.firstOrNull()?.id,
+                                    reportName = savedProject.nomeProjeto,
+                                    cliente = savedProject.cliente,
+                                    componente = savedProject.componente,
+                                    pdfItems = items,
+                                    activePdfIndex = 0,
+                                    pdfPath = firstItem.pdfPath,
+                                    pdfName = firstItem.pdfName,
+                                    currentReport = firstItem.reportData,
+                                    secoes = firstItem.secoes,
+                                    secaoAtivaId = firstItem.secoes.firstOrNull()?.id,
                                     reportSaveState = SavedState.Saved
                                 )
                             }
                         }
                     }
-                } else {
+                } else if (_state.value.pdfItems.isEmpty() && intent.pdfPath.isNotBlank()) {
                     _state.update {
                         it.copy(
                             reportId = intent.reportId,
                             pdfPath = intent.pdfPath,
                             pdfName = intent.pdfName,
-                            reportName = "Relatório ${_state.value.currentReport?.cliente ?: "Sem Cliente"} — ${intent.pdfName}",
-                            secaoAtivaId = it.secoes.first().id,
+                            reportName = "Relatório ${intent.pdfName}",
+                            secaoAtivaId = it.secoes.firstOrNull()?.id,
                             isInitializing = false,
                             reportSaveState = SavedState.Unsaved
+                        )
+                    }
+                } else {
+                    _state.update { it.copy(isInitializing = false) }
+                }
+            }
+
+            is ReportCreatorIntent.OnSelectPdfItem -> {
+                val index = intent.index
+                if (index in _state.value.pdfItems.indices) {
+                    _state.update { currentState ->
+                        val updatedItems = currentState.pdfItems.mapIndexed { idx, item ->
+                            if (idx == index) item.copy(isTouched = true) else item
+                        }
+                        val selectedItem = updatedItems[index]
+                        currentState.copy(
+                            activePdfIndex = index,
+                            pdfItems = updatedItems,
+                            pdfPath = selectedItem.pdfPath,
+                            pdfName = selectedItem.pdfName,
+                            currentReport = selectedItem.reportData,
+                            secoes = selectedItem.secoes,
+                            secaoAtivaId = selectedItem.secoes.firstOrNull()?.id,
+                            secoesAbertas = selectedItem.secoes.firstOrNull()?.id?.let { setOf(it) } ?: emptySet()
                         )
                     }
                 }
@@ -176,7 +243,7 @@ class ReportCreatorViewModel(
 
             is ReportCreatorIntent.OnUpdateSection -> {
                 _state.update { currentState ->
-                    val updatedList = currentState.secoes.map { section ->
+                    val updatedSecoes = currentState.secoes.map { section ->
                         if (section.id == intent.updatedSection.id) intent.updatedSection else section
                     }
                     val updatedReportData = if (intent.updatedSection is ReportSection.ResultadosDimensionais) {
@@ -185,17 +252,30 @@ class ReportCreatorViewModel(
                         currentState.currentReport
                     }
 
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) {
+                            item.copy(
+                                secoes = updatedSecoes,
+                                reportData = updatedReportData ?: item.reportData
+                            )
+                        } else item
+                    }
+
                     currentState.copy(
-                        secoes = updatedList,
-                        currentReport = updatedReportData
+                        secoes = updatedSecoes,
+                        currentReport = updatedReportData,
+                        pdfItems = updatedPdfItems
                     )
                 }
             }
 
             is ReportCreatorIntent.OnRemoveSection -> {
                 _state.update { currentState ->
-                    val updatedList = currentState.secoes.filterNot { it.id == intent.sectionId }
-                    currentState.copy(secoes = updatedList)
+                    val updatedSecoes = currentState.secoes.filterNot { it.id == intent.sectionId }
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) item.copy(secoes = updatedSecoes) else item
+                    }
+                    currentState.copy(secoes = updatedSecoes, pdfItems = updatedPdfItems)
                 }
             }
 
@@ -206,20 +286,26 @@ class ReportCreatorViewModel(
                         val item = list.removeAt(intent.fromIndex)
                         list.add(intent.toIndex, item)
                     }
-                    currentState.copy(secoes = list)
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) item.copy(secoes = list) else item
+                    }
+                    currentState.copy(secoes = list, pdfItems = updatedPdfItems)
                 }
             }
 
             is ReportCreatorIntent.OnAddSection -> {
-                val list = _state.value.secoes.toMutableList()
-                val conclusaoIndex = list.indexOfFirst { it is ReportSection.Conclusao }
-                if (conclusaoIndex != -1) {
-                    list.add(conclusaoIndex, intent.section)
-                } else {
-                    list.add(intent.section)
-                }
                 _state.update { currentState ->
-                    currentState.copy(secoes = list)
+                    val list = currentState.secoes.toMutableList()
+                    val conclusaoIndex = list.indexOfFirst { it is ReportSection.Conclusao }
+                    if (conclusaoIndex != -1) {
+                        list.add(conclusaoIndex, intent.section)
+                    } else {
+                        list.add(intent.section)
+                    }
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) item.copy(secoes = list) else item
+                    }
+                    currentState.copy(secoes = list, pdfItems = updatedPdfItems)
                 }
             }
 
@@ -232,12 +318,20 @@ class ReportCreatorViewModel(
                             section
                         }
                     }
-                    currentState.copy(secoes = updatedList)
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) item.copy(secoes = updatedList) else item
+                    }
+                    currentState.copy(secoes = updatedList, pdfItems = updatedPdfItems)
                 }
             }
 
             is ReportCreatorIntent.OnReportFieldChanged -> {
-                _state.update { it.copy(currentReport = intent.updatedData) }
+                _state.update { currentState ->
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) item.copy(reportData = intent.updatedData) else item
+                    }
+                    currentState.copy(currentReport = intent.updatedData, pdfItems = updatedPdfItems)
+                }
             }
 
             is ReportCreatorIntent.OnReportNameChanged -> {
@@ -253,8 +347,8 @@ class ReportCreatorViewModel(
             }
 
             is ReportCreatorIntent.OnEditImageConfirmed -> {
-                _state.update {
-                    val updatedSections = it.secoes.map { section ->
+                _state.update { currentState ->
+                    val updatedSections = currentState.secoes.map { section ->
                         when (section) {
                             is ReportSection.Introducao -> {
                                 if (section.imagem.id == intent.updatedImagem.id) {
@@ -279,20 +373,45 @@ class ReportCreatorViewModel(
                             else -> section
                         }
                     }
-                    it.copy(showEditDialog = false, editingImage = null, secoes = updatedSections)
+
+                    val updatedPdfItems = currentState.pdfItems.mapIndexed { idx, item ->
+                        if (idx == currentState.activePdfIndex) item.copy(secoes = updatedSections) else item
+                    }
+
+                    currentState.copy(
+                        showEditDialog = false,
+                        editingImage = null,
+                        secoes = updatedSections,
+                        pdfItems = updatedPdfItems
+                    )
                 }
             }
 
             ReportCreatorIntent.OnSaveProject -> {
                 _state.update { it.copy(reportSaveState = SavedState.Saving) }
                 viewModelScope.launch {
+                    val itemsToSave = if (_state.value.pdfItems.isNotEmpty()) {
+                        _state.value.pdfItems
+                    } else {
+                        val currentRep = _state.value.currentReport
+                        if (currentRep != null) {
+                            listOf(
+                                PdfItem(
+                                    pdfPath = state.value.pdfPath,
+                                    pdfName = _state.value.pdfName,
+                                    reportData = currentRep,
+                                    secoes = _state.value.secoes
+                                )
+                            )
+                        } else emptyList()
+                    }
+
                     val newId = roomProjectRepository.saveProject(
                         projectId = _state.value.reportId,
-                        projectName = _state.value.reportName,
-                        pdfPath = state.value.pdfPath,
-                        pdfName = _state.value.pdfName,
-                        reportData = _state.value.currentReport ?: return@launch,
-                        secoes = _state.value.secoes
+                        projectName = _state.value.reportName.ifBlank { "Projeto Sem Nome" },
+                        cliente = _state.value.cliente,
+                        componente = _state.value.componente,
+                        pdfItems = itemsToSave
                     )
 
                     _state.update { it.copy(reportId = newId, reportSaveState = SavedState.JustSaved) }
@@ -306,16 +425,21 @@ class ReportCreatorViewModel(
                     val projId = roomProjectRepository.restoreVersion(intent.versionId)
                     if (projId != 0L) {
                         val projetoRestaurado = roomProjectRepository.getProjectById(projId)
-                        if (projetoRestaurado != null) {
+                        if (projetoRestaurado != null && projetoRestaurado.pdfItems.isNotEmpty()) {
+                            val firstItem = projetoRestaurado.pdfItems.first()
                             _state.update { currentState ->
                                 currentState.copy(
                                     reportId = projetoRestaurado.projectId,
                                     isInitializing = false,
-                                    pdfPath = projetoRestaurado.pdfPath,
-                                    pdfName = projetoRestaurado.pdfName,
-                                    reportName = projetoRestaurado.reportName,
-                                    currentReport = projetoRestaurado.reportData,
-                                    secoes = projetoRestaurado.secoes,
+                                    reportName = projetoRestaurado.nomeProjeto,
+                                    cliente = projetoRestaurado.cliente,
+                                    componente = projetoRestaurado.componente,
+                                    pdfItems = projetoRestaurado.pdfItems,
+                                    activePdfIndex = 0,
+                                    pdfPath = firstItem.pdfPath,
+                                    pdfName = firstItem.pdfName,
+                                    currentReport = firstItem.reportData,
+                                    secoes = firstItem.secoes,
                                     reportSaveState = SavedState.Saved
                                 )
                             }
@@ -360,6 +484,30 @@ class ReportCreatorViewModel(
                         _state.update {
                             it.copy(isGeneratingPdf = false)
                         }
+                    }
+                }
+            }
+
+            is ReportCreatorIntent.OnGenerateAllPdfs -> {
+                generatePdfJob?.cancel()
+                generatePdfJob = viewModelScope.launch {
+                    _state.update { it.copy(isGeneratingPdf = true) }
+                    try {
+                        val filesList = _state.value.pdfItems.map { item ->
+                            val bytes = pdfGenerator.generatePdfBytes(
+                                reportData = item.reportData,
+                                secoes = item.secoes,
+                                originalPdfPath = item.pdfPath
+                            )
+                            Pair(item.pdfName, bytes)
+                        }
+                        sendEffect(ReportCreatorEffect.OnBatchPdfsGenerated(filesList))
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        e.printStackTrace()
+                        _state.update { it.copy(errorMessage = e.message ?: "Erro ao gerar PDFs em lote") }
+                    } finally {
+                        _state.update { it.copy(isGeneratingPdf = false) }
                     }
                 }
             }

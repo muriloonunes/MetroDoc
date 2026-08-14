@@ -1,6 +1,6 @@
 package org.senai.metrodoc.features.report.model
 
-import java.util.*
+import java.util.UUID
 
 data class MeasurementData(
     val hash: String = UUID.randomUUID().toString(),

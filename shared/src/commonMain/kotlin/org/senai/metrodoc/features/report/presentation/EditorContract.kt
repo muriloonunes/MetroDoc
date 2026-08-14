@@ -9,6 +9,10 @@ data class ReportCreatorState(
     val pdfPath: String = "",
     val pdfName: String = "",
     val reportName: String = "",
+    val cliente: String = "",
+    val componente: String = "",
+    val pdfItems: List<PdfItem> = emptyList(),
+    val activePdfIndex: Int = 0,
     val pdf: Map<String, ByteArray> = mutableMapOf(),
     val zoomFactor: Float = 1.0f,
     val errorMessage: String? = null,
@@ -26,21 +30,37 @@ data class ReportCreatorState(
     val editingImage: Imagem? = null,
     val versions: List<ProjectVersion> = emptyList(),
 ) {
+    val activePdfItem: PdfItem?
+        get() = pdfItems.getOrNull(activePdfIndex)
+
     val sectionErrors: List<SectionError>
         get() {
-            return secoes.flatMap { secao ->
-                if (secao is ReportSection.Identificacao) {
-                    currentReport?.getErrors(secao.id, secao.titulo) ?: emptyList()
-                } else secao.errors
+            val item = activePdfItem
+            return if (item != null) {
+                item.errors
+            } else {
+                secoes.flatMap { secao ->
+                    if (secao is ReportSection.Identificacao) {
+                        currentReport?.getErrors(secao.id, secao.titulo) ?: emptyList()
+                    } else secao.errors
+                }
             }
         }
 
     val canExport: Boolean
         get() {
-            val reportValido = currentReport?.isValid ?: false
-            val secoesValidas = secoes.all { it.isValid }
+            return if (pdfItems.isNotEmpty()) {
+                pdfItems.all { it.isValid }
+            } else {
+                val reportValido = currentReport?.isValid ?: false
+                val secoesValidas = secoes.all { it.isValid }
+                reportValido && secoesValidas
+            }
+        }
 
-            return reportValido && secoesValidas
+    val canExportActive: Boolean
+        get() {
+            return activePdfItem?.isValid ?: canExport
         }
 
     override fun equals(other: Any?): Boolean {
@@ -51,6 +71,7 @@ data class ReportCreatorState(
 
         if (reportId != other.reportId) return false
         if (isInitializing != other.isInitializing) return false
+        if (activePdfIndex != other.activePdfIndex) return false
         if (zoomFactor != other.zoomFactor) return false
         if (showBackDialog != other.showBackDialog) return false
         if (isGeneratingPdf != other.isGeneratingPdf) return false
@@ -59,6 +80,9 @@ data class ReportCreatorState(
         if (pdfPath != other.pdfPath) return false
         if (pdfName != other.pdfName) return false
         if (reportName != other.reportName) return false
+        if (cliente != other.cliente) return false
+        if (componente != other.componente) return false
+        if (pdfItems != other.pdfItems) return false
         if (pdf != other.pdf) return false
         if (errorMessage != other.errorMessage) return false
         if (currentReport != other.currentReport) return false
@@ -71,6 +95,8 @@ data class ReportCreatorState(
         if (editingImage != other.editingImage) return false
         if (versions != other.versions) return false
         if (canExport != other.canExport) return false
+        if (canExportActive != other.canExportActive) return false
+        if (activePdfItem != other.activePdfItem) return false
         if (sectionErrors != other.sectionErrors) return false
 
         return true
@@ -79,6 +105,7 @@ data class ReportCreatorState(
     override fun hashCode(): Int {
         var result = reportId.hashCode()
         result = 31 * result + isInitializing.hashCode()
+        result = 31 * result + activePdfIndex
         result = 31 * result + zoomFactor.hashCode()
         result = 31 * result + showBackDialog.hashCode()
         result = 31 * result + isGeneratingPdf.hashCode()
@@ -87,6 +114,9 @@ data class ReportCreatorState(
         result = 31 * result + pdfPath.hashCode()
         result = 31 * result + pdfName.hashCode()
         result = 31 * result + reportName.hashCode()
+        result = 31 * result + cliente.hashCode()
+        result = 31 * result + componente.hashCode()
+        result = 31 * result + pdfItems.hashCode()
         result = 31 * result + pdf.hashCode()
         result = 31 * result + errorMessage.hashCode()
         result = 31 * result + currentReport.hashCode()
@@ -99,6 +129,8 @@ data class ReportCreatorState(
         result = 31 * result + editingImage.hashCode()
         result = 31 * result + versions.hashCode()
         result = 31 * result + canExport.hashCode()
+        result = 31 * result + canExportActive.hashCode()
+        result = 31 * result + activePdfItem.hashCode()
         result = 31 * result + sectionErrors.hashCode()
         return result
     }
@@ -108,6 +140,7 @@ sealed interface ReportCreatorIntent {
     val contentChanged: Boolean get() = false
 
     data class OnInit(val reportId: Long?, val pdfPath: String, val pdfName: String) : ReportCreatorIntent
+    data class OnSelectPdfItem(val index: Int) : ReportCreatorIntent
 
     data class OnPdfLoaded(val pdfPath: String, val bytes: ByteArray) : ReportCreatorIntent {
         override fun equals(other: Any?): Boolean {
@@ -178,6 +211,7 @@ sealed interface ReportCreatorIntent {
     data object OnSaveProject : ReportCreatorIntent
 
     data class OnGeneratePdf(val destinationPath: String) : ReportCreatorIntent
+    data object OnGenerateAllPdfs : ReportCreatorIntent
     data object OnCancelGeneration : ReportCreatorIntent
 }
 
@@ -197,4 +231,6 @@ sealed interface ReportCreatorEffect {
             return bytes.contentHashCode()
         }
     }
+
+    data class OnBatchPdfsGenerated(val files: List<Pair<String, ByteArray>>) : ReportCreatorEffect
 }

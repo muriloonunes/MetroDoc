@@ -12,6 +12,8 @@ import org.senai.metrodoc.common.util.PdfGenerator
 import org.senai.metrodoc.common.util.PdfParser
 import org.senai.metrodoc.features.report.data.MemoryReportRepository
 import org.senai.metrodoc.features.report.model.MeasurementData
+import org.senai.metrodoc.features.report.model.PdfItemStatus
+import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 
 class WelcomeScreenViewModel(
@@ -56,8 +58,40 @@ class WelcomeScreenViewModel(
             }
 
             is WelcomeScreenIntent.OnFileSelected -> {
-                _state.update { it.copy(pdfPath = intent.path, pdfName = intent.name) }
+                _state.update {
+                    it.copy(
+                        pdfPath = intent.path,
+                        pdfName = intent.name,
+                        isBatchMode = false,
+                        batchItems = emptyList()
+                    )
+                }
                 readPdf(intent.path)
+            }
+
+            is WelcomeScreenIntent.OnMultipleFilesSelected -> {
+                if (intent.files.isEmpty()) return
+                if (intent.files.size == 1) {
+                    val single = intent.files.first()
+                    _state.update {
+                        it.copy(
+                            pdfPath = single.first,
+                            pdfName = single.second,
+                            isBatchMode = false,
+                            batchItems = emptyList()
+                        )
+                    }
+                    readPdf(single.first)
+                } else {
+                    readPdfsBatch(intent.files)
+                }
+            }
+
+            is WelcomeScreenIntent.OnRemoveBatchItem -> {
+                _state.update { currentState ->
+                    val updated = currentState.batchItems.filterNot { it.id == intent.id }
+                    currentState.copy(batchItems = updated)
+                }
             }
 
             is WelcomeScreenIntent.OnProjectSelected -> {
@@ -145,26 +179,99 @@ class WelcomeScreenViewModel(
 
             is WelcomeScreenIntent.OnConfirmData -> {
                 val finalData = _state.value.editedReportData ?: return
-                val path = _state.value.pdfPath
-                val pdfName = _state.value.pdfName
+                if (_state.value.isBatchMode) {
+                    val validBatchItems = _state.value.batchItems
+                        .filter { it.status != PdfItemStatus.ERROR }
+                        .map { item ->
+                            val updatedData = item.reportData.copy(
+                                cliente = finalData.cliente,
+                                componente = finalData.componente
+                            )
+                            item.copy(reportData = updatedData)
+                        }
 
-                memoryReportRepository.setReport(finalData)
-                _state.update {
-                    it.copy(
-                        showReportDialog = false,
-                        reportData = null,
-                        editedReportData = null,
-                        pdfPath = "",
-                        pdfName = ""
+                    if (validBatchItems.isEmpty()) return
+
+                    memoryReportRepository.setProjectData(
+                        cliente = finalData.cliente,
+                        componente = finalData.componente,
+                        pdfItems = validBatchItems
+                    )
+
+                    _state.update {
+                        it.copy(
+                            showReportDialog = false,
+                            reportData = null,
+                            editedReportData = null,
+                            batchItems = emptyList(),
+                            isBatchMode = false
+                        )
+                    }
+
+                    sendEffect(
+                        WelcomeEffect.NavigateToRelatoryCreator(
+                            reportId = null,
+                            path = "",
+                            pdfName = ""
+                        )
+                    )
+                } else {
+                    val path = _state.value.pdfPath
+                    val pdfName = _state.value.pdfName
+
+                    memoryReportRepository.setReport(finalData)
+                    _state.update {
+                        it.copy(
+                            showReportDialog = false,
+                            reportData = null,
+                            editedReportData = null,
+                            pdfPath = "",
+                            pdfName = ""
+                        )
+                    }
+                    sendEffect(
+                        WelcomeEffect.NavigateToRelatoryCreator(
+                            reportId = null,
+                            path = path,
+                            pdfName = pdfName
+                        )
                     )
                 }
-                sendEffect(
-                    WelcomeEffect.NavigateToRelatoryCreator(
-                        reportId = null,
-                        path = path,
-                        pdfName = pdfName
-                    )
-                )
+            }
+
+            is WelcomeScreenIntent.OnRequestExportProject -> {
+                viewModelScope.launch {
+                    val projeto = roomProjectRepository.getProjectById(intent.project.id) ?: return@launch
+
+                    val hasErrors = projeto.pdfItems.any { item ->
+                        item.secoes.any { secao ->
+                            if (secao is ReportSection.Identificacao) {
+                                item.reportData.getErrors(secao.id, secao.titulo).isNotEmpty()
+                            } else !secao.isValid
+                        }
+                    }
+
+                    if (hasErrors) {
+                        _state.update {
+                            it.copy(
+                                showProjectWithErrorsDialog = true,
+                                projectWithErrorsId = intent.project.id
+                            )
+                        }
+                        return@launch
+                    }
+
+                    if (projeto.pdfItems.size > 1) {
+                        sendEffect(WelcomeEffect.TriggerBatchExportDirectoryPicker(intent.project.id))
+                    } else {
+                        sendEffect(
+                            WelcomeEffect.TriggerSingleExportFileSaver(
+                                projectId = intent.project.id,
+                                suggestedName = "${intent.project.nomeProjeto}.pdf"
+                            )
+                        )
+                    }
+                }
             }
 
             is WelcomeScreenIntent.OnGeneratePdf -> {
@@ -173,24 +280,12 @@ class WelcomeScreenViewModel(
                     _state.update { it.copy(isGeneratingPdf = true) }
                     try {
                         val projeto = roomProjectRepository.getProjectById(intent.id) ?: return@launch
-                        val erros = projeto.secoes.flatMap { secao ->
-                            if (secao is ReportSection.Identificacao) {
-                                projeto.reportData.getErrors(secao.id, secao.titulo)
-                            } else secao.errors
-                        }
-                        if (erros.isNotEmpty()) {
-                            _state.update {
-                                it.copy(
-                                    showProjectWithErrorsDialog = true,
-                                    projectWithErrorsId = intent.id
-                                )
-                            }
-                            return@launch
-                        }
+                        val firstItem = projeto.pdfItems.firstOrNull() ?: return@launch
+
                         val bytes = pdfGenerator.generatePdfBytes(
-                            reportData = projeto.reportData,
-                            secoes = projeto.secoes,
-                            originalPdfPath = projeto.pdfPath,
+                            reportData = firstItem.reportData,
+                            secoes = firstItem.secoes,
+                            originalPdfPath = firstItem.pdfPath,
                         )
                         sendEffect(WelcomeEffect.OnPdfGenerated(bytes))
                     } catch (e: Exception) {
@@ -201,6 +296,32 @@ class WelcomeScreenViewModel(
                         _state.update {
                             it.copy(isGeneratingPdf = false)
                         }
+                    }
+                }
+            }
+
+            is WelcomeScreenIntent.OnGenerateBatchPdfs -> {
+                generatePdfJob?.cancel()
+                generatePdfJob = viewModelScope.launch {
+                    _state.update { it.copy(isGeneratingPdf = true, isBatchMode = true) }
+                    try {
+                        val projeto = roomProjectRepository.getProjectById(intent.projectId) ?: return@launch
+
+                        val filesList = projeto.pdfItems.map { item ->
+                            val bytes = pdfGenerator.generatePdfBytes(
+                                reportData = item.reportData,
+                                secoes = item.secoes,
+                                originalPdfPath = item.pdfPath
+                            )
+                            Pair(item.pdfName, bytes)
+                        }
+                        sendEffect(WelcomeEffect.OnBatchPdfsGenerated(filesList))
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        e.printStackTrace()
+                        _state.update { it.copy(errorMessage = e.message ?: "Erro ao gerar PDFs em lote") }
+                    } finally {
+                        _state.update { it.copy(isGeneratingPdf = false, isBatchMode = false) }
                     }
                 }
             }
@@ -237,6 +358,7 @@ class WelcomeScreenViewModel(
             WelcomeScreenIntent.OnCancelGeneration -> {
                 generatePdfJob?.cancel()
                 generatePdfJob = null
+                _state.update { it.copy(isGeneratingPdf = false) }
             }
 
             is WelcomeScreenIntent.OnDismissReportDialog -> {
@@ -246,7 +368,9 @@ class WelcomeScreenViewModel(
                         reportData = null,
                         editedReportData = null,
                         pdfPath = "",
-                        pdfName = ""
+                        pdfName = "",
+                        batchItems = emptyList(),
+                        isBatchMode = false
                     )
                 }
             }
@@ -274,6 +398,31 @@ class WelcomeScreenViewModel(
             } catch (e: Exception) {
                 _state.update {
                     it.copy(errorMessage = e.localizedMessage ?: "Erro ao ler o arquivo PDF.")
+                }
+            } finally {
+                _state.update { it.copy(isProcessingPdf = false) }
+            }
+        }
+    }
+
+    private fun readPdfsBatch(files: List<Pair<String, String>>) {
+        viewModelScope.launch {
+            _state.update { it.copy(isProcessingPdf = true) }
+            try {
+                val items = pdfParser.parsePdfsInBatch(files)
+                val firstValidData = items.firstOrNull { it.status != PdfItemStatus.ERROR }?.reportData ?: ReportData()
+                _state.update {
+                    it.copy(
+                        batchItems = items,
+                        isBatchMode = true,
+                        reportData = firstValidData,
+                        editedReportData = firstValidData,
+                        showReportDialog = true
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(errorMessage = e.localizedMessage ?: "Erro ao ler os arquivos PDF.")
                 }
             } finally {
                 _state.update { it.copy(isProcessingPdf = false) }

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import org.senai.metrodoc.common.ui.MetroDocOutlinedButton
 import org.senai.metrodoc.common.ui.MetroDocOutlinedIconButton
 import org.senai.metrodoc.common.ui.MetroDocPrimaryButton
 import org.senai.metrodoc.common.ui.MetroDocTextField
@@ -29,11 +30,14 @@ import org.senai.metrodoc.features.report.model.SavedState
 fun TopToolbar(
     title: String,
     exportEnabled: Boolean,
+    exportActiveEnabled: Boolean = exportEnabled,
+    isMultiPdf: Boolean = false,
     savedState: SavedState,
     onUpdateTitle: (String) -> Unit,
     onBackClick: () -> Unit,
     onSave: () -> Unit,
     onEmitReportClick: () -> Unit,
+    onEmitAllPdfsClick: () -> Unit = {},
     onFocusRoot: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -208,21 +212,34 @@ fun TopToolbar(
                 onSave = onSave
             )
             Spacer(modifier = Modifier.width(4.dp))
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
-                tooltip = {
-                    if (!exportEnabled)
-                        PlainTooltip { Text("Preencha todos os campos obrigatórios para emitir o relatório") }
-                },
-                state = rememberTooltipState(),
-            ) {
-                MetroDocPrimaryButton(
+            if (isMultiPdf) {
+                MetroDocOutlinedButton(
                     onClick = onEmitReportClick,
+                    enabled = exportActiveEnabled
+                ) {
+                    Text("Exportar PDF Atual")
+                }
+                MetroDocPrimaryButton(
+                    onClick = onEmitAllPdfsClick,
                     enabled = exportEnabled
                 ) {
-                    Text(
-                        text = "Emitir Relatório",
-                    )
+                    Text("Exportar Todos (Lote)")
+                }
+            } else {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                    tooltip = {
+                        if (!exportEnabled)
+                            PlainTooltip { Text("Preencha todos os campos obrigatórios para emitir o relatório") }
+                    },
+                    state = rememberTooltipState(),
+                ) {
+                    MetroDocPrimaryButton(
+                        onClick = onEmitReportClick,
+                        enabled = exportEnabled
+                    ) {
+                        Text("Emitir Relatório")
+                    }
                 }
             }
         }

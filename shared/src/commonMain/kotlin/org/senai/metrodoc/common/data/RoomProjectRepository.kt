@@ -5,14 +5,15 @@ import org.senai.metrodoc.common.database.dao.ProjectDao
 import org.senai.metrodoc.common.database.dao.VersionDao
 import org.senai.metrodoc.common.database.dto.FullProject
 import org.senai.metrodoc.common.database.dto.ProjectDto
-import org.senai.metrodoc.common.database.dto.ProjectWithMeasurements
+import org.senai.metrodoc.common.database.dto.ProjectWithReports
 import org.senai.metrodoc.common.database.dto.VersionDto
+import org.senai.metrodoc.common.database.entity.ProjectEntity
 import org.senai.metrodoc.common.database.entity.VersionEntity
 import org.senai.metrodoc.common.mapper.metroDocJson
 import org.senai.metrodoc.common.mapper.toDomain
 import org.senai.metrodoc.common.mapper.toEntity
 import org.senai.metrodoc.common.util.toVersionName
-import org.senai.metrodoc.features.report.model.ReportData
+import org.senai.metrodoc.features.report.model.PdfItem
 import org.senai.metrodoc.features.report.model.ReportSection
 import kotlin.time.Duration.Companion.minutes
 
@@ -26,10 +27,9 @@ interface RoomProjectRepository {
     suspend fun saveProject(
         projectId: Long?,
         projectName: String,
-        pdfPath: String,
-        pdfName: String,
-        reportData: ReportData,
-        secoes: List<ReportSection>,
+        cliente: String,
+        componente: String,
+        pdfItems: List<PdfItem>,
     ): Long
 
     suspend fun deleteProjectById(projectId: Long)
@@ -58,82 +58,99 @@ class RoomProjectRepositoryImpl(
     override suspend fun getProjectById(projectId: Long): FullProject? {
         val entity = projectDao.getProjectById(projectId) ?: return null
 
-        val measurementData = entity.measurements.map { it.toDomain() }
-        val reportDataDomain = entity.reportData.toDomain(measurementData)
+        val pdfItems = entity.reports.map { rwm ->
+            val measurementData = rwm.measurements.map { it.toDomain() }
+            val reportDataDomain = rwm.reportData.toDomain(measurementData)
 
-        val decodedSecoes = runCatching {
-            metroDocJson.decodeFromString<List<ReportSection>>(entity.reportData.secoesJson)
-        }.getOrDefault(emptyList())
+            val decodedSecoes = runCatching {
+                metroDocJson.decodeFromString<List<ReportSection>>(rwm.reportData.secoesJson)
+            }.getOrDefault(emptyList())
 
-        val secoesReconstruidas = decodedSecoes.map { secao ->
-            when (secao) {
-                is ReportSection.ResultadosDimensionais -> secao.copy(measurements = reportDataDomain.caracteristicas)
-                else -> secao
+            val secoesReconstruidas = decodedSecoes.map { secao ->
+                when (secao) {
+                    is ReportSection.ResultadosDimensionais -> secao.copy(measurements = reportDataDomain.caracteristicas)
+                    else -> secao
+                }
             }
+
+            PdfItem(
+                pdfPath = rwm.reportData.pdfPath,
+                pdfName = rwm.reportData.pdfName,
+                reportData = reportDataDomain,
+                secoes = secoesReconstruidas
+            )
         }
 
         return FullProject(
-            projectId = entity.reportData.id,
-            reportName = entity.reportData.nomeRelatorio,
-            pdfPath = entity.reportData.pdfPath,
-            pdfName = entity.reportData.pdfName,
-            reportData = reportDataDomain,
-            secoes = secoesReconstruidas
+            projectId = entity.project.id,
+            nomeProjeto = entity.project.nomeProjeto,
+            cliente = entity.project.cliente,
+            componente = entity.project.componente,
+            pdfItems = pdfItems
         )
     }
 
     override suspend fun saveProject(
         projectId: Long?,
         projectName: String,
-        pdfPath: String,
-        pdfName: String,
-        reportData: ReportData,
-        secoes: List<ReportSection>,
+        cliente: String,
+        componente: String,
+        pdfItems: List<PdfItem>,
     ): Long {
         val agora = System.currentTimeMillis()
 
-        val secoesJson = metroDocJson.encodeToString(secoes)
-        val reportEntity = reportData.toEntity(
+        val projectEntity = ProjectEntity(
             id = projectId ?: 0,
-            nomeRelatorio = projectName,
-            pdfName = pdfName,
-            pdfPath = pdfPath,
-            lastModified = agora,
-            secoesJson = secoesJson
+            nomeProjeto = projectName,
+            cliente = cliente,
+            componente = componente,
+            createdAt = agora,
+            lastModified = agora
         )
 
-        val measurementEntities = reportData.caracteristicas.map { it.toEntity(0) }
-
-        val projetoSalvoId = projectDao.saveFullProject(reportEntity, measurementEntities)
-
-        val snapshotObj = ProjectWithMeasurements(
-            reportData = reportEntity.copy(id = projetoSalvoId),
-            measurements = measurementEntities
-        )
-        val projetoJson = metroDocJson.encodeToString(snapshotObj)
-
-        val ultimaVersao = versionDao.getLatestVersion(projetoSalvoId)
-        if (ultimaVersao != null && (agora - ultimaVersao.createdAt) < 2.5.minutes.inWholeMilliseconds) {
-            //se a última versao foi criada ha menos de 2 min e meio, não criamos uma nova, mas atualizamos a versao existente
-            val versaoAtualizada = ultimaVersao.copy(
-                versionName = agora.toVersionName(),
-                contentJson = projetoJson,
-            )
-            versionDao.updateVersion(versaoAtualizada)
-        } else {
-            val novaVersao = VersionEntity(
+        val reportsWithMeasurements = pdfItems.map { pdfItem ->
+            val secoesJson = metroDocJson.encodeToString(pdfItem.secoes)
+            val reportEntity = pdfItem.reportData.toEntity(
                 id = 0,
-                projectId = projetoSalvoId,
-                versionName = agora.toVersionName(),
-                createdAt = agora,
-                contentJson = projetoJson
+                projectId = projectId ?: 0,
+                nomeRelatorio = projectName,
+                pdfName = pdfItem.pdfName,
+                pdfPath = pdfItem.pdfPath,
+                lastModified = agora,
+                secoesJson = secoesJson
             )
-            versionDao.insertVersion(novaVersao)
+            val measurementEntities = pdfItem.reportData.caracteristicas.map { it.toEntity(0) }
+            Pair(reportEntity, measurementEntities)
         }
 
-        versionDao.trimVersions(projectId = projetoSalvoId, maxVersions = 15)
+        val savedProjectId = projectDao.saveFullProject(projectEntity, reportsWithMeasurements)
 
-        return projetoSalvoId
+        val snapshotObj = projectDao.getProjectById(savedProjectId)
+        if (snapshotObj != null) {
+            val projetoJson = metroDocJson.encodeToString(snapshotObj)
+
+            val ultimaVersao = versionDao.getLatestVersion(savedProjectId)
+            if (ultimaVersao != null && (agora - ultimaVersao.createdAt) < 2.5.minutes.inWholeMilliseconds) {
+                val versaoAtualizada = ultimaVersao.copy(
+                    versionName = agora.toVersionName(),
+                    contentJson = projetoJson,
+                )
+                versionDao.updateVersion(versaoAtualizada)
+            } else {
+                val novaVersao = VersionEntity(
+                    id = 0,
+                    projectId = savedProjectId,
+                    versionName = agora.toVersionName(),
+                    createdAt = agora,
+                    contentJson = projetoJson
+                )
+                versionDao.insertVersion(novaVersao)
+            }
+
+            versionDao.trimVersions(projectId = savedProjectId, maxVersions = 15)
+        }
+
+        return savedProjectId
     }
 
     override suspend fun deleteProjectById(projectId: Long) {
@@ -150,12 +167,15 @@ class RoomProjectRepositoryImpl(
         val versaoEncontrada = versionDao.getVersionById(versionId) ?: return 0L
 
         val jsonTexto = versaoEncontrada.contentJson
-        val snapshotObj = metroDocJson.decodeFromString<ProjectWithMeasurements>(jsonTexto)
+        val snapshotObj = metroDocJson.decodeFromString<ProjectWithReports>(jsonTexto)
 
         val agora = System.currentTimeMillis()
+        val reportsWithMeasurements = snapshotObj.reports.map { rwm ->
+            Pair(rwm.reportData.copy(lastModified = agora), rwm.measurements)
+        }
         val projSalvoId = projectDao.saveFullProject(
-            snapshotObj.reportData.copy(lastModified = agora),
-            snapshotObj.measurements
+            snapshotObj.project.copy(lastModified = agora),
+            reportsWithMeasurements
         )
 
         val novaVersao = VersionEntity(

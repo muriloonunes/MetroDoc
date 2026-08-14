@@ -42,8 +42,9 @@ fun WelcomeScreen(
         }
 
         if (state.isGeneratingPdf) {
+            val loadingMessage = if (state.isBatchMode) "Gerando PDFs" else "Gerando PDF"
             MetroDocLoadingDialog(
-                loadingMessage = "Gerando PDF",
+                loadingMessage = loadingMessage,
                 isCancelable = true,
                 onCancelLoading = {
                     onIntent(WelcomeScreenIntent.OnCancelGeneration)
@@ -55,7 +56,7 @@ fun WelcomeScreen(
             ConfirmDialog(
                 title = "Relatório com pendências",
                 description = "Este relatório possui campos obrigatórios em branco. Para emitir o PDF, é necessário corrigir as pendências no editor.",
-                onDismiss = {onIntent(WelcomeScreenIntent.OnDismissProjectWithErrorDialog) },
+                onDismiss = { onIntent(WelcomeScreenIntent.OnDismissProjectWithErrorDialog) },
                 buttons = {
                     TextButton(
                         onClick = { onIntent(WelcomeScreenIntent.OnDismissProjectWithErrorDialog) },
@@ -96,6 +97,11 @@ fun WelcomeScreen(
                 onAddMeasurement = { onIntent(WelcomeScreenIntent.OnAddMeasurement) },
                 reportData = state.editedReportData ?: state.reportData,
                 isValid = state.isFormValid,
+                isBatchMode = state.isBatchMode,
+                batchItems = state.batchItems,
+                onRemoveBatchItem = { id ->
+                    onIntent(WelcomeScreenIntent.OnRemoveBatchItem(id))
+                }
             )
         }
 

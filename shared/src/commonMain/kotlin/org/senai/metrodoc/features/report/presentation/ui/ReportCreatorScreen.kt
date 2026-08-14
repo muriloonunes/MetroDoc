@@ -19,6 +19,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.flow.Flow
@@ -27,6 +28,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.ui.MetroDocLoadingDialog
 import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdf
+import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdfsBatch
 import org.senai.metrodoc.features.report.model.Imagem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.SavedState
@@ -61,23 +63,45 @@ fun ReportCreatorScreen(
 
     val scope = rememberCoroutineScope()
     var pdfBytesToSave by remember { mutableStateOf<ByteArray?>(null) }
+    var batchPdfBytesToSave by remember { mutableStateOf<List<Pair<String, ByteArray>>?>(null) }
+
     val saverLauncher = rememberFileSaverLauncher(
-        dialogSettings = FileKitDialogSettings.createDefault()
-    ) { file ->
-        scope.savePdf(
-            file = file,
-            getpdfBytes = { pdfBytesToSave },
-            onEnsureBytesGenerated = {
-                file?.path?.let { path ->
-                    onIntent(ReportCreatorIntent.OnGeneratePdf(path))
+        dialogSettings = FileKitDialogSettings.createDefault(),
+        onError = {},
+        onResult = { file ->
+            scope.savePdf(
+                file = file,
+                getpdfBytes = { pdfBytesToSave },
+                onEnsureBytesGenerated = {
+                    file?.path?.let { path ->
+                        onIntent(ReportCreatorIntent.OnGeneratePdf(path))
+                    }
+                },
+                onSuccess = {
+                    pdfBytesToSave = null
+                    onIntent(ReportCreatorIntent.OnSaveProject)
                 }
-            },
-            onSuccess = {
-                pdfBytesToSave = null
-                onIntent(ReportCreatorIntent.OnSaveProject)
-            }
-        )
-    }
+            )
+        }
+    )
+
+    val batchSaverLauncher = rememberDirectoryPickerLauncher(
+        dialogSettings = FileKitDialogSettings.createDefault(),
+        onError = {},
+        onResult = { directory ->
+            scope.savePdfsBatch(
+                directory = directory,
+                getPdfBytesList = { batchPdfBytesToSave },
+                onEnsureBytesGenerated = {
+                    onIntent(ReportCreatorIntent.OnGenerateAllPdfs)
+                },
+                onSuccess = {
+                    batchPdfBytesToSave = null
+                    onIntent(ReportCreatorIntent.OnSaveProject)
+                }
+            )
+        }
+    )
 
     LaunchedEffect(Unit) {
         effect.collect { effect ->
@@ -88,6 +112,10 @@ fun ReportCreatorScreen(
 
                 is ReportCreatorEffect.OnPdfGenerated -> {
                     pdfBytesToSave = effect.bytes
+                }
+
+                is ReportCreatorEffect.OnBatchPdfsGenerated -> {
+                    batchPdfBytesToSave = effect.files
                 }
             }
         }
@@ -109,8 +137,9 @@ fun ReportCreatorScreen(
     }
 
     if (state.isGeneratingPdf) {
+        val loadingMessage = if (state.pdfItems.size > 1) "Gerando PDFs" else "Gerando PDF"
         MetroDocLoadingDialog(
-            loadingMessage = "Gerando PDF",
+            loadingMessage = loadingMessage,
             isCancelable = true,
             onCancelLoading = {
                 onIntent(ReportCreatorIntent.OnCancelGeneration)
@@ -154,6 +183,8 @@ fun ReportCreatorScreen(
         TopToolbar(
             title = state.reportName,
             exportEnabled = state.canExport,
+            exportActiveEnabled = state.canExportActive,
+            isMultiPdf = state.pdfItems.size > 1,
             savedState = state.reportSaveState,
             onUpdateTitle = {
                 onIntent(ReportCreatorIntent.OnReportNameChanged(it))
@@ -161,11 +192,15 @@ fun ReportCreatorScreen(
             onBackClick = { onIntent(ReportCreatorIntent.OnBackClicked) },
             onSave = { onIntent(ReportCreatorIntent.OnSaveProject) },
             onEmitReportClick = {
+                val currentName = state.activePdfItem?.pdfName?.ifBlank { state.reportName } ?: state.reportName
                 saverLauncher.launch(
-                    suggestedName = "${state.reportName}.pdf",
+                    suggestedName = "$currentName.pdf",
                     defaultExtension = "pdf",
                     allowedExtensions = setOf("pdf")
                 )
+            },
+            onEmitAllPdfsClick = {
+                batchSaverLauncher.launch()
             },
             onFocusRoot = { rootFocusRequester.requestFocus() }
         )
@@ -207,6 +242,9 @@ fun ReportCreatorScreen(
                             SectionEditorPanel(
                                 section = currentSection,
                                 reportData = state.currentReport ?: ReportData(),
+                                pdfItems = state.pdfItems,
+                                activePdfIndex = state.activePdfIndex,
+                                onSelectPdfItem = { onIntent(ReportCreatorIntent.OnSelectPdfItem(it)) },
                                 onIntent = onIntent,
                                 onFocusRoot = { rootFocusRequester.requestFocus() }
                             )

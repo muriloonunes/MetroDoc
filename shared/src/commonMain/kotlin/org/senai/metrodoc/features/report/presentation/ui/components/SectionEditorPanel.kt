@@ -41,10 +41,15 @@ import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.Pag
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.TableGridHeader
 import org.senai.metrodoc.features.welcome.presentation.ui.components.dialog.components.MeasurementTableRow
 
+import org.senai.metrodoc.features.report.model.PdfItem
+
 @Composable
 fun SectionEditorPanel(
     section: ReportSection,
     reportData: ReportData,
+    pdfItems: List<PdfItem> = emptyList(),
+    activePdfIndex: Int = 0,
+    onSelectPdfItem: (Int) -> Unit = {},
     onFocusRoot: () -> Unit,
     onIntent: (ReportCreatorIntent) -> Unit,
 ) {
@@ -52,6 +57,41 @@ fun SectionEditorPanel(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (pdfItems.size > 1) {
+            SecondaryScrollableTabRow(
+                selectedTabIndex = activePdfIndex,
+                edgePadding = 0.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                pdfItems.forEachIndexed { index, item ->
+                    val isSelected = index == activePdfIndex
+                    val hasError = !item.isValid && item.isTouched
+                    Tab(
+                        selected = isSelected,
+                        onClick = { onSelectPdfItem(index) },
+                        text = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = item.pdfName.ifBlank { "PDF #${index + 1}" },
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                if (hasError && !isSelected) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    ) {
+                                        Text("!", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
         var editarTitulo by remember(section.hashCode()) { mutableStateOf(false) }
 
         if (section is ReportSection.Customizada) {

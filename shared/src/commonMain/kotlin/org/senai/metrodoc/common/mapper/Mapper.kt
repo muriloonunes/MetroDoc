@@ -15,6 +15,7 @@ val metroDocJson = Json {
 
 fun ReportData.toEntity(
     id: Long = 0,
+    projectId: Long = 0,
     nomeRelatorio: String,
     pdfName: String,
     pdfPath: String,
@@ -23,6 +24,7 @@ fun ReportData.toEntity(
 ): ReportDataEntity =
     ReportDataEntity(
         id = id,
+        projectId = projectId,
         nomeRelatorio = nomeRelatorio,
         pdfName = pdfName,
         pdfPath = pdfPath,

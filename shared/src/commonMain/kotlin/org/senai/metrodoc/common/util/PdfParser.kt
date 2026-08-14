@@ -2,11 +2,16 @@ package org.senai.metrodoc.common.util
 
 import dev.nucleusframework.pdfium.PdfReaderState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import org.apache.pdfbox.Loader
 import org.apache.pdfbox.text.PDFTextStripper
 import org.senai.metrodoc.features.report.model.MeasurementData
+import org.senai.metrodoc.features.report.model.PdfItem
+import org.senai.metrodoc.features.report.model.PdfItemStatus
 import org.senai.metrodoc.features.report.model.ReportData
+import org.senai.metrodoc.features.report.model.ReportSection
 import java.io.File
 
 class PdfParser {
@@ -73,6 +78,54 @@ class PdfParser {
                 parseText(pdfText)
             }
         }
+
+    suspend fun parsePdfsInBatch(
+        files: List<Pair<String, String>>,
+        chunkSize: Int = 5,
+        onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
+    ): List<PdfItem> = withContext(Dispatchers.IO) {
+        val total = files.size
+        val results = mutableListOf<PdfItem>()
+        var processedCount = 0
+
+        for (chunk in files.chunked(chunkSize)) {
+            val chunkItems = chunk.map { (path, name) ->
+                async {
+                    try {
+                        val data = parsePdf(path)
+                        val initialSections = listOf(
+                            ReportSection.Introducao(),
+                            ReportSection.Identificacao(),
+                            ReportSection.ResultadosDimensionais(measurements = data.caracteristicas),
+                            ReportSection.InterpretacaoResultados(),
+                            ReportSection.Conclusao(),
+                        )
+                        PdfItem(
+                            pdfPath = path,
+                            pdfName = name,
+                            reportData = data,
+                            secoes = initialSections,
+                            status = PdfItemStatus.PARSED
+                        )
+                    } catch (e: Exception) {
+                        PdfItem(
+                            pdfPath = path,
+                            pdfName = name,
+                            status = PdfItemStatus.ERROR,
+                            errorMessage = e.message ?: "Erro ao ler o arquivo PDF."
+                        )
+                    }
+                }
+            }.awaitAll()
+
+            results.addAll(chunkItems)
+            processedCount += chunk.size
+            onProgress(processedCount, total)
+        }
+
+        results
+    }
+
 
 
     private fun parseText(pdfText: String): ReportData {
