@@ -63,6 +63,9 @@ fun WelcomeContent(
     val pickerLauncher = rememberFilePickerLauncher(
         type = FileKitType.File("pdf"),
         mode = FileKitMode.Multiple(),
+        dialogSettings = FileKitDialogSettings(
+            title = "Selecione um ou mais arquivos PDF",
+        ),
         onError = {},
         onResult = { files ->
             files?.let { list ->

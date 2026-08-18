@@ -7,11 +7,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import org.apache.pdfbox.Loader
 import org.apache.pdfbox.text.PDFTextStripper
-import org.senai.metrodoc.features.report.model.MeasurementData
-import org.senai.metrodoc.features.report.model.PdfItem
-import org.senai.metrodoc.features.report.model.PdfItemStatus
-import org.senai.metrodoc.features.report.model.ReportData
-import org.senai.metrodoc.features.report.model.ReportSection
+import org.senai.metrodoc.features.report.model.*
 import java.io.File
 
 class PdfParser {
@@ -32,7 +28,7 @@ class PdfParser {
          *
          * @see <a href="https://github.com/NucleusFramework/ComposePdfReader#6-search-across-pages-and-highlight-hits">Documentação do ComposePdfReader - Busca</a>
          * */
-        suspend fun getPageFromSearch(reader: PdfReaderState, searchTerm: String):Int {
+        suspend fun getPageFromSearch(reader: PdfReaderState, searchTerm: String): Int {
             if (searchTerm.isBlank()) return -1
             for (page in 0 until reader.pageCount) {
                 val layout = reader.pageTextLayout(page) ?: continue
@@ -46,6 +42,7 @@ class PdfParser {
             return -1
         }
     }
+
     private object ZeissReportRegex {
         val NOME = Regex("^(?:Nome|Part name)\\s+(.+)", RegexOption.IGNORE_CASE)
         val NOME_MMC = Regex("^(?:Nome da MMC|Modelo MMC)\\s+(.+)", RegexOption.IGNORE_CASE)
@@ -60,29 +57,52 @@ class PdfParser {
             RegexOption.IGNORE_CASE
         )
 
+        val INSPECT_DATA_ROW = Regex(
+            "^(.*?)\\s+([A-Za-z_#]+)\\s+([-+0-9.,\\s]+)$",
+            RegexOption.IGNORE_CASE
+        )
+
         val LIXO = setOf(
             "corner", "max", "min", "pontos", "lc", "upr", "vmess",
             "raio", "page", "run", "last", "name", "tipo", "mtodo", "metodo"
         )
     }
 
+    private enum class PdfType { CALYPSO, INSPECT, UNKNOWN }
+
     suspend fun parsePdf(path: String): ReportData =
         withContext(Dispatchers.IO) {
             val file = File(path)
             require(file.exists()) { "Arquivo não encontrado: $path" }
 
-            //todo ver se é possível usar o pdfium pra extrair o texto do pdf
             Loader.loadPDF(file).use { document ->
                 val stripper = PDFTextStripper()
                 val pdfText = stripper.getText(document)
-                parseText(pdfText)
+
+                val pdfType = checkPdfType(pdfText)
+
+                when (pdfType) {
+                    PdfType.CALYPSO -> parseCalypsoPdf(pdfText)
+                    PdfType.INSPECT -> parseInspectPdf(pdfText)
+                    PdfType.UNKNOWN -> throw IllegalArgumentException("Tipo de PDF desconhecido ou não suportado.")
+                }
+
             }
         }
+
+    private fun checkPdfType(pdfText: String): PdfType {
+        val amostra = pdfText.take(2000).lowercase()
+        return when {
+            amostra.contains("calypso") -> PdfType.CALYPSO
+            amostra.contains("zeiss inspec") -> PdfType.INSPECT
+            else -> PdfType.UNKNOWN
+        }
+    }
 
     suspend fun parsePdfsInBatch(
         files: List<Pair<String, String>>,
         chunkSize: Int = 5,
-        onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
+        onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> },
     ): List<PdfItem> = withContext(Dispatchers.IO) {
         val total = files.size
         val results = mutableListOf<PdfItem>()
@@ -127,8 +147,7 @@ class PdfParser {
     }
 
 
-
-    private fun parseText(pdfText: String): ReportData {
+    private fun parseCalypsoPdf(pdfText: String): ReportData {
         val linhas = pdfText.lines()
         val totalLinhas = linhas.size
 
@@ -214,7 +233,7 @@ class PdfParser {
 
                 val tokensNumericos = restoNumeros.split("\\s+".toRegex())
 
-                val medicaoProcessada = processarTokensDeMedicao(
+                val medicaoProcessada = processarTokensCalypso(
                     nome = nome,
                     measured = measured,
                     unidade = unidadeAtual,
@@ -239,7 +258,62 @@ class PdfParser {
         return reportData
     }
 
-    private fun processarTokensDeMedicao(
+    private fun parseInspectPdf(pdfText: String): ReportData {
+        val linhas = pdfText.lines()
+        val medicoes = mutableListOf<MeasurementData>()
+
+        var isDentroTabela = false
+        var softwareVersion = "ZEISS INSPECT"
+
+        for (linha in linhas) {
+            val trimmed = linha.trim()
+            if (trimmed.isEmpty()) continue
+
+            val lower = trimmed.lowercase()
+
+            if (lower.startsWith("generated with zeiss inspec")) {
+                softwareVersion = trimmed.substringAfter("with ").replace("INSPEC T", "INSPECT")
+                continue
+            }
+
+            if (lower.startsWith("element datum property") || lower.startsWith("nominal atual")) {
+                isDentroTabela = true
+                continue
+            }
+
+            if (lower.startsWith("alinhamento original") || lower.startsWith("unidade de comprimento")) {
+                isDentroTabela = false
+                continue
+            }
+
+            if (isDentroTabela) {
+                val match = ZeissReportRegex.INSPECT_DATA_ROW.find(trimmed)
+                if (match != null) {
+                    val nomeElemento = match.groupValues[1].trim() // Ex: Defeito do volume 1.Vp.147
+                    val propriedade = match.groupValues[2].trim()  // Ex: Vp
+                    val numerosBrutos = match.groupValues[3].trim() // Ex: +44.82
+
+                    val tokensNumericos = numerosBrutos.split("\\s+".toRegex())
+
+                    // Adaptador para normalizar os dados do Inspect no seu MeasurementData
+                    val medicao = processarTokensInspect(nomeElemento, propriedade, tokensNumericos)
+                    medicoes.add(medicao)
+                }
+            }
+        }
+        return ReportData(
+            identificadorCalypso = "Relatório de Inspeção 3D",
+            maquina = "",
+            numeroMaquina = "-",
+            operador = "Não especificado",
+            dataHora = "-",
+            qtdCaracteristicas = medicoes.size.toString(),
+            software = softwareVersion,
+            caracteristicas = medicoes
+        )
+    }
+
+    private fun processarTokensCalypso(
         nome: String,
         measured: String,
         unidade: String,
@@ -278,6 +352,46 @@ class PdfParser {
             tolInferior = tolInf,
             desvio = desvio,
             isForaTolerancia = isForaTolerancia
+        )
+    }
+
+    private fun processarTokensInspect(
+        nome: String,
+        propriedade: String,
+        tokens: List<String>,
+    ): MeasurementData {
+        var nominal = "-"
+        var atual = "-"
+        var desvio = "-"
+
+        val nomeFormatado = "$nome ($propriedade)"
+
+        when (tokens.size) {
+            1 -> {
+                atual = tokens[0]
+            }
+
+            2 -> {
+                nominal = tokens[0]
+                atual = tokens[1]
+            }
+
+            else -> if (tokens.size >= 3) {
+                nominal = tokens[0]
+                atual = tokens[1]
+                desvio = tokens[2]
+            }
+        }
+
+        return MeasurementData(
+            nome = nomeFormatado,
+            valorMedido = atual,
+            unidade = "mm/mm³",
+            valorNominal = nominal,
+            tolSuperior = "-",
+            tolInferior = "-",
+            desvio = desvio,
+            isForaTolerancia = false // Exigiria checar a coluna "Out" se ela vier preenchida
         )
     }
 }
