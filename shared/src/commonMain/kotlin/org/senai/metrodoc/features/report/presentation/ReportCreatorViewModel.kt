@@ -390,9 +390,7 @@ class ReportCreatorViewModel(
             ReportCreatorIntent.OnSaveProject -> {
                 _state.update { it.copy(reportSaveState = SavedState.Saving) }
                 viewModelScope.launch {
-                    val itemsToSave = if (_state.value.pdfItems.isNotEmpty()) {
-                        _state.value.pdfItems
-                    } else {
+                    val itemsToSave = _state.value.pdfItems.ifEmpty {
                         val currentRep = _state.value.currentReport
                         if (currentRep != null) {
                             listOf(

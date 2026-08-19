@@ -13,8 +13,7 @@ sealed interface ReportBlock {
         override val id: String = UUID.randomUUID().toString(),
         val conteudo: String = "",
         val emTopicos: Boolean = false,
-    ) : ReportBlock {
-    }
+    ) : ReportBlock
 
     @Serializable @SerialName("GaleriaImagem")
     data class GaleriaImagem(
@@ -22,8 +21,7 @@ sealed interface ReportBlock {
         val imagens: List<Imagem> = emptyList(),
         val colunas: Int = 1,
         val legenda: String = "",
-    ): ReportBlock {
-    }
+    ): ReportBlock
 
     @Serializable @SerialName("QuebraPagina")
     data class QuebraPagina(
