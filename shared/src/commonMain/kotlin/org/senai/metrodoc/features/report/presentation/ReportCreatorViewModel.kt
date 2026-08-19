@@ -493,15 +493,12 @@ class ReportCreatorViewModel(
                 generatePdfJob = viewModelScope.launch {
                     _state.update { it.copy(isGeneratingPdf = true, processedPdfCount = 0) }
                     try {
-                        val filesList = _state.value.pdfItems.map { item ->
-                            val bytes = pdfGenerator.generatePdfBytes(
-                                reportData = item.reportData,
-                                secoes = item.secoes,
-                                originalPdfPath = item.pdfPath
-                            )
-                            _state.update { it.copy(processedPdfCount = it.processedPdfCount + 1) }
-                            Pair(item.pdfName, bytes)
-                        }
+                        val filesList = pdfGenerator.generateBatchPdfBytes(
+                            items = _state.value.pdfItems,
+                            onProgress = { processedCount ->
+                                _state.update { it.copy(processedPdfCount = processedCount) }
+                            }
+                        )
                         sendEffect(ReportCreatorEffect.OnBatchPdfsGenerated(filesList))
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e

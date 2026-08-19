@@ -5,17 +5,16 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.write
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import org.senai.metrodoc.features.report.model.PdfItem
 import org.senai.metrodoc.features.report.model.ReportData
 import org.senai.metrodoc.features.report.model.ReportSection
 import java.awt.Desktop
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 
 class PdfGenerator(
     val renderEngine: PdfRenderEngine
@@ -112,6 +111,28 @@ class PdfGenerator(
         builder.toStream(os)
         builder.run()
         os.toByteArray()
+    }
+
+    suspend fun generateBatchPdfBytes(
+        items: List<PdfItem>,
+        chunkSize: Int = 3,
+        onProgress: (processed: Int) -> Unit = {},
+    ): List<Pair<String, ByteArray>> = withContext(Dispatchers.Default) {
+        val results = mutableListOf<Pair<String, ByteArray>>()
+        val processedCount = AtomicInteger(0)
+        for (chunk in items.chunked(chunkSize)) {
+            val chunkResults = chunk.map { item ->
+                async(Dispatchers.IO) {
+                    val bytes = generatePdfBytes(item.reportData, item.secoes, item.pdfPath)
+                    val current = processedCount.incrementAndGet()
+                    onProgress(current)
+                    Pair(item.pdfName, bytes)
+                }
+            }.awaitAll()
+            results.addAll(chunkResults)
+        }
+
+        results
     }
 
     suspend fun generatePreviewPdfBytes(
