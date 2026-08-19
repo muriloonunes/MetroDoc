@@ -407,14 +407,26 @@ class WelcomeScreenViewModel(
 
     private fun readPdfsBatch(files: List<Pair<String, String>>) {
         viewModelScope.launch {
-            _state.update { it.copy(isProcessingPdf = true) }
+            _state.update {
+                it.copy(
+                    isProcessingPdf = true,
+                    isBatchMode = true,
+                    processedPdfCount = 0,
+                    totalPdfCount = files.size
+                )
+            }
             try {
-                val items = pdfParser.parsePdfsInBatch(files)
+                val items = pdfParser.parsePdfsInBatch(
+                    files = files,
+                    onProgress = { processados ->
+                        _state.update {
+                            it.copy(processedPdfCount = processados)
+                        }
+                    })
                 val firstValidData = items.firstOrNull { it.status != PdfItemStatus.ERROR }?.reportData ?: ReportData()
                 _state.update {
                     it.copy(
                         batchItems = items,
-                        isBatchMode = true,
                         reportData = firstValidData,
                         editedReportData = firstValidData,
                         showReportDialog = true
@@ -425,7 +437,7 @@ class WelcomeScreenViewModel(
                     it.copy(errorMessage = e.localizedMessage ?: "Erro ao ler os arquivos PDF.")
                 }
             } finally {
-                _state.update { it.copy(isProcessingPdf = false) }
+                _state.update { it.copy(isProcessingPdf = false, processedPdfCount = 0, totalPdfCount = 0) }
             }
         }
     }

@@ -102,9 +102,8 @@ class PdfParser {
     suspend fun parsePdfsInBatch(
         files: List<Pair<String, String>>,
         chunkSize: Int = 5,
-        onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> },
+        onProgress: (processed: Int) -> Unit = {},
     ): List<PdfItem> = withContext(Dispatchers.IO) {
-        val total = files.size
         val results = mutableListOf<PdfItem>()
         var processedCount = 0
 
@@ -140,7 +139,7 @@ class PdfParser {
 
             results.addAll(chunkItems)
             processedCount += chunk.size
-            onProgress(processedCount, total)
+            onProgress(processedCount)
         }
 
         results

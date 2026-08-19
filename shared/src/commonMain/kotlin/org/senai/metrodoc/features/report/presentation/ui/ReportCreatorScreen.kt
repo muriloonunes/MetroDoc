@@ -138,8 +138,14 @@ fun ReportCreatorScreen(
 
     if (state.isGeneratingPdf) {
         val loadingMessage = if (state.pdfItems.size > 1) "Gerando PDFs" else "Gerando PDF"
+        val supportingMessage = if (state.pdfItems.size > 1) {
+            "${state.processedPdfCount} de ${state.pdfItems.size} PDFs gerados"
+        } else null
+        val progress = if (state.pdfItems.size > 1) state.processedPdfCount.toFloat() / state.pdfItems.size else null
         MetroDocLoadingDialog(
             loadingMessage = loadingMessage,
+            supportingMessage = supportingMessage,
+            progress = progress,
             isCancelable = true,
             onCancelLoading = {
                 onIntent(ReportCreatorIntent.OnCancelGeneration)

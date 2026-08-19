@@ -15,6 +15,8 @@ data class WelcomeViewState(
     val isBatchMode: Boolean = false,
     val errorMessage: String? = null,
     val isProcessingPdf: Boolean = false,
+    val processedPdfCount: Int = 0,
+    val totalPdfCount: Int = 0,
     val reportData: ReportData? = null,
     val editedReportData: ReportData? = null,
     val showReportDialog: Boolean = false,
@@ -42,6 +44,9 @@ data class WelcomeViewState(
                         it.software.isNotBlank()
             } ?: false
         }
+
+    val pdfProcessingProgress: Float?
+        get() = if (totalPdfCount > 0) processedPdfCount.toFloat() / totalPdfCount else null
 }
 
 sealed interface WelcomeScreenIntent {

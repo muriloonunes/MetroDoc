@@ -35,9 +35,14 @@ fun WelcomeScreen(
         )
 
         if (state.isProcessingPdf) {
+            val loadingMsg = if (state.isBatchMode) "Processando PDFs" else "Processando PDF"
+            val supportingMessage = if (state.isBatchMode && state.processedPdfCount > 0) {
+                "${state.processedPdfCount} de ${state.totalPdfCount} processados"
+            } else state.pdfName
             MetroDocLoadingDialog(
-                loadingMessage = "Processando PDF",
-                supportingMessage = state.pdfName,
+                loadingMessage = loadingMsg,
+                supportingMessage = supportingMessage,
+                progress = state.pdfProcessingProgress,
             )
         }
 

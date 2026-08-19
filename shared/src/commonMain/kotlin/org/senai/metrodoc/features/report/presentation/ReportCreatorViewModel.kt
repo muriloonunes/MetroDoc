@@ -468,7 +468,7 @@ class ReportCreatorViewModel(
                 generatePdfJob?.cancel()
 
                 generatePdfJob = viewModelScope.launch {
-                    _state.update { it.copy(isGeneratingPdf = true) }
+                    _state.update { it.copy(isGeneratingPdf = true, processedPdfCount = 0) }
                     try {
                         val bytes = pdfGenerator.generatePdfBytes(
                             reportData = reportData,
@@ -482,7 +482,7 @@ class ReportCreatorViewModel(
                         _state.update { it.copy(errorMessage = e.message ?: "Erro ao gerar PDF") }
                     } finally {
                         _state.update {
-                            it.copy(isGeneratingPdf = false)
+                            it.copy(isGeneratingPdf = false, processedPdfCount = 0)
                         }
                     }
                 }
@@ -491,7 +491,7 @@ class ReportCreatorViewModel(
             is ReportCreatorIntent.OnGenerateAllPdfs -> {
                 generatePdfJob?.cancel()
                 generatePdfJob = viewModelScope.launch {
-                    _state.update { it.copy(isGeneratingPdf = true) }
+                    _state.update { it.copy(isGeneratingPdf = true, processedPdfCount = 0) }
                     try {
                         val filesList = _state.value.pdfItems.map { item ->
                             val bytes = pdfGenerator.generatePdfBytes(
@@ -499,6 +499,7 @@ class ReportCreatorViewModel(
                                 secoes = item.secoes,
                                 originalPdfPath = item.pdfPath
                             )
+                            _state.update { it.copy(processedPdfCount = it.processedPdfCount + 1) }
                             Pair(item.pdfName, bytes)
                         }
                         sendEffect(ReportCreatorEffect.OnBatchPdfsGenerated(filesList))
@@ -507,7 +508,7 @@ class ReportCreatorViewModel(
                         e.printStackTrace()
                         _state.update { it.copy(errorMessage = e.message ?: "Erro ao gerar PDFs em lote") }
                     } finally {
-                        _state.update { it.copy(isGeneratingPdf = false) }
+                        _state.update { it.copy(isGeneratingPdf = false, processedPdfCount = 0) }
                     }
                 }
             }

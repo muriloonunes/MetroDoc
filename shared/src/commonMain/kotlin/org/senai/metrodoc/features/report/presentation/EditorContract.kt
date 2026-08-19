@@ -23,6 +23,7 @@ data class ReportCreatorState(
     val showBackDialog: Boolean = false,
     val secaoAtivaId: String? = null,
     val isGeneratingPdf: Boolean = false,
+    val processedPdfCount: Int = 0,
     val previewPdfBytes: ByteArray? = null,
     val isGeneratingPreview: Boolean = false,
     val reportSaveState: SavedState = SavedState.Unsaved,
@@ -36,15 +37,12 @@ data class ReportCreatorState(
     val sectionErrors: List<SectionError>
         get() {
             val item = activePdfItem
-            return if (item != null) {
-                item.errors
-            } else {
-                secoes.flatMap { secao ->
+            return item?.errors
+                ?: secoes.flatMap { secao ->
                     if (secao is ReportSection.Identificacao) {
                         currentReport?.getErrors(secao.id, secao.titulo) ?: emptyList()
                     } else secao.errors
                 }
-            }
         }
 
     val canExport: Boolean
@@ -75,6 +73,7 @@ data class ReportCreatorState(
         if (zoomFactor != other.zoomFactor) return false
         if (showBackDialog != other.showBackDialog) return false
         if (isGeneratingPdf != other.isGeneratingPdf) return false
+        if (processedPdfCount != other.processedPdfCount) return false
         if (isGeneratingPreview != other.isGeneratingPreview) return false
         if (showEditDialog != other.showEditDialog) return false
         if (pdfPath != other.pdfPath) return false
@@ -109,6 +108,7 @@ data class ReportCreatorState(
         result = 31 * result + zoomFactor.hashCode()
         result = 31 * result + showBackDialog.hashCode()
         result = 31 * result + isGeneratingPdf.hashCode()
+        result = 31 * result + processedPdfCount
         result = 31 * result + isGeneratingPreview.hashCode()
         result = 31 * result + showEditDialog.hashCode()
         result = 31 * result + pdfPath.hashCode()

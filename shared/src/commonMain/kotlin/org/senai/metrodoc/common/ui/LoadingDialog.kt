@@ -20,6 +20,7 @@ import androidx.compose.ui.window.DialogProperties
 fun MetroDocLoadingDialog(
     loadingMessage: String,
     supportingMessage: String? = null,
+    progress: Float? = null,
     isCancelable: Boolean = false,
     onCancelLoading: (() -> Unit)? = null,
 ) {
@@ -59,11 +60,20 @@ fun MetroDocLoadingDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.5.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    if (progress != null) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            progress = { progress }
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
