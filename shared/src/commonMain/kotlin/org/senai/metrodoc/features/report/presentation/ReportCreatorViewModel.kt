@@ -33,61 +33,6 @@ class ReportCreatorViewModel(
     private var previewJob: Job? = null
 
     init {
-        val memoryBatch = memoryReportRepository.currentProjectData.value
-        val memorySingle = memoryReportRepository.currentReport.value
-
-        if (memoryBatch != null && memoryBatch.pdfItems.isNotEmpty()) {
-            val initialItems = memoryBatch.pdfItems.mapIndexed { idx, item ->
-                if (idx == 0) item.copy(isTouched = true) else item
-            }
-            val activeItem = initialItems.first()
-
-            _state.update {
-                it.copy(
-                    cliente = memoryBatch.cliente,
-                    componente = memoryBatch.componente,
-                    pdfItems = initialItems,
-                    activePdfIndex = 0,
-                    pdfPath = activeItem.pdfPath,
-                    pdfName = activeItem.pdfName,
-                    reportName = "Projeto ${memoryBatch.cliente} — ${memoryBatch.componente}",
-                    currentReport = activeItem.reportData,
-                    secoes = activeItem.secoes,
-                    secaoAtivaId = activeItem.secoes.firstOrNull()?.id,
-                    secoesAbertas = activeItem.secoes.firstOrNull()?.id?.let { id -> setOf(id) } ?: emptySet()
-                )
-            }
-        } else if (memorySingle != null) {
-            val initialSections = listOf(
-                ReportSection.Introducao(),
-                ReportSection.Identificacao(),
-                ReportSection.ResultadosDimensionais(measurements = memorySingle.caracteristicas),
-                ReportSection.InterpretacaoResultados(),
-                ReportSection.Conclusao(),
-            )
-            val initialItem = PdfItem(
-                pdfPath = "",
-                pdfName = memorySingle.componente,
-                reportData = memorySingle,
-                secoes = initialSections,
-                isTouched = true
-            )
-            val initialSectionId = initialSections.firstOrNull()?.id
-
-            _state.update {
-                it.copy(
-                    cliente = memorySingle.cliente,
-                    componente = memorySingle.componente,
-                    pdfItems = listOf(initialItem),
-                    activePdfIndex = 0,
-                    currentReport = memorySingle,
-                    secoes = initialSections,
-                    secaoAtivaId = initialSectionId,
-                    secoesAbertas = initialSectionId?.let { id -> setOf(id) } ?: emptySet()
-                )
-            }
-        }
-
         viewModelScope.launch {
             _state.map { Triple(it.secoes, it.currentReport, it.isInitializing) }
                 .distinctUntilChanged()
@@ -126,6 +71,7 @@ class ReportCreatorViewModel(
             is ReportCreatorIntent.OnInit -> {
                 val savedId = intent.reportId
 
+                // 1. Caso seja a abertura de um projeto já salvo no banco de dados (Room)
                 if (savedId != null) {
                     viewModelScope.launch {
                         val savedProject = roomProjectRepository.getProjectById(savedId)
@@ -134,6 +80,7 @@ class ReportCreatorViewModel(
                                 if (idx == 0) item.copy(isTouched = true) else item
                             }
                             val firstItem = items.first()
+                            val initialSectionId = firstItem.secoes.firstOrNull()?.id
 
                             _state.update { currentState ->
                                 currentState.copy(
@@ -148,26 +95,96 @@ class ReportCreatorViewModel(
                                     pdfName = firstItem.pdfName,
                                     currentReport = firstItem.reportData,
                                     secoes = firstItem.secoes,
-                                    secaoAtivaId = firstItem.secoes.firstOrNull()?.id,
+                                    secaoAtivaId = initialSectionId,
+                                    secoesAbertas = initialSectionId?.let { setOf(it) } ?: emptySet(),
                                     reportSaveState = SavedState.Saved
                                 )
                             }
+                            memoryReportRepository.clearReport()
+                        } else {
+                            _state.update { it.copy(isInitializing = false) }
                         }
                     }
-                } else if (_state.value.pdfItems.isEmpty() && intent.pdfPath.isNotBlank()) {
-                    _state.update {
-                        it.copy(
-                            reportId = intent.reportId,
-                            pdfPath = intent.pdfPath,
-                            pdfName = intent.pdfName,
-                            reportName = "Relatório ${intent.pdfName}",
-                            secaoAtivaId = it.secoes.firstOrNull()?.id,
-                            isInitializing = false,
-                            reportSaveState = SavedState.Unsaved
-                        )
-                    }
                 } else {
-                    _state.update { it.copy(isInitializing = false) }
+                    val memoryBatch = memoryReportRepository.currentProjectData.value
+                    val memorySingle = memoryReportRepository.currentReport.value
+
+                    // 2. Caso seja um novo projeto criado em lote (múltiplos PDFs em memória)
+                    if (memoryBatch != null && memoryBatch.pdfItems.isNotEmpty()) {
+                        val initialItems = memoryBatch.pdfItems.mapIndexed { idx, item ->
+                            if (idx == 0) item.copy(isTouched = true) else item
+                        }
+                        val activeItem = initialItems.first()
+                        val initialSectionId = activeItem.secoes.firstOrNull()?.id
+
+                        _state.update {
+                            it.copy(
+                                cliente = memoryBatch.cliente,
+                                componente = memoryBatch.componente,
+                                pdfItems = initialItems,
+                                activePdfIndex = 0,
+                                pdfPath = activeItem.pdfPath,
+                                pdfName = activeItem.pdfName,
+                                reportName = "Projeto ${memoryBatch.cliente} — ${memoryBatch.componente}",
+                                currentReport = activeItem.reportData,
+                                secoes = activeItem.secoes,
+                                secaoAtivaId = initialSectionId,
+                                secoesAbertas = initialSectionId?.let { id -> setOf(id) } ?: emptySet(),
+                                isInitializing = false,
+                                reportSaveState = SavedState.Unsaved
+                            )
+                        }
+                        memoryReportRepository.clearReport()
+                    }
+                    // 3. Caso seja um novo relatório criado a partir de um único PDF
+                    else if (memorySingle != null || intent.pdfPath.isNotBlank()) {
+                        val reportData = memorySingle ?: ReportData()
+                        val actualPath = intent.pdfPath
+                        val actualName = intent.pdfName.ifBlank {
+                            reportData.componente.ifBlank {
+                                "Relatório"
+                            }
+                        }
+
+                        val initialSections = listOf(
+                            ReportSection.Introducao(),
+                            ReportSection.Identificacao(),
+                            ReportSection.ResultadosDimensionais(measurements = reportData.caracteristicas),
+                            ReportSection.InterpretacaoResultados(),
+                            ReportSection.Conclusao(),
+                        )
+                        val initialItem = PdfItem(
+                            pdfPath = actualPath,
+                            pdfName = actualName,
+                            reportData = reportData,
+                            secoes = initialSections,
+                            isTouched = true
+                        )
+                        val initialSectionId = initialSections.firstOrNull()?.id
+
+                        _state.update {
+                            it.copy(
+                                cliente = reportData.cliente,
+                                componente = reportData.componente,
+                                pdfItems = listOf(initialItem),
+                                activePdfIndex = 0,
+                                pdfPath = actualPath,
+                                pdfName = actualName,
+                                reportName = "Relatório $actualName",
+                                currentReport = reportData,
+                                secoes = initialSections,
+                                secaoAtivaId = initialSectionId,
+                                secoesAbertas = initialSectionId?.let { id -> setOf(id) } ?: emptySet(),
+                                isInitializing = false,
+                                reportSaveState = SavedState.Unsaved
+                            )
+                        }
+                        memoryReportRepository.clearReport()
+                    }
+                    // 4. Caso padrão / fallback (estado já existente ou vazio)
+                    else {
+                        _state.update { it.copy(isInitializing = false) }
+                    }
                 }
             }
 
@@ -395,7 +412,7 @@ class ReportCreatorViewModel(
                         if (currentRep != null) {
                             listOf(
                                 PdfItem(
-                                    pdfPath = state.value.pdfPath,
+                                    pdfPath = _state.value.pdfPath,
                                     pdfName = _state.value.pdfName,
                                     reportData = currentRep,
                                     secoes = _state.value.secoes
@@ -425,6 +442,7 @@ class ReportCreatorViewModel(
                         val projetoRestaurado = roomProjectRepository.getProjectById(projId)
                         if (projetoRestaurado != null && projetoRestaurado.pdfItems.isNotEmpty()) {
                             val firstItem = projetoRestaurado.pdfItems.first()
+                            val initialSectionId = firstItem.secoes.firstOrNull()?.id
                             _state.update { currentState ->
                                 currentState.copy(
                                     reportId = projetoRestaurado.projectId,
@@ -438,6 +456,8 @@ class ReportCreatorViewModel(
                                     pdfName = firstItem.pdfName,
                                     currentReport = firstItem.reportData,
                                     secoes = firstItem.secoes,
+                                    secaoAtivaId = initialSectionId,
+                                    secoesAbertas = initialSectionId?.let { setOf(it) } ?: emptySet(),
                                     reportSaveState = SavedState.Saved
                                 )
                             }
