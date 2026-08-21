@@ -521,9 +521,9 @@ fun IntroducaoSectionEditor(
             )
             val hasImage = introducao.imagem.path.isNotBlank()
             Text(
-                text = "Foto do Componente*",
+                text = "Foto do Componente",
                 style = MaterialTheme.typography.labelLarge,
-                color = if (hasImage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.primary
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -532,7 +532,7 @@ fun IntroducaoSectionEditor(
             ) {
                 MetroDocAddButton(
                     onClick = { imageLauncher.launch() },
-                    borderColor = if (hasImage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    borderColor = MaterialTheme.colorScheme.primary,
                     text = if (hasImage) "Alterar Imagem" else "Selecionar Imagem",
                     modifier = Modifier.weight(1f)
                 )

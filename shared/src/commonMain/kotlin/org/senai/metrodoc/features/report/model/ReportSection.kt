@@ -66,9 +66,6 @@ sealed interface ReportSection {
                         )
                     }
                 }
-                if (imagem.path.isBlank()) {
-                    list.add(SectionError(id, titulo, "Foto do Componente", "A foto do componente é obrigatória"))
-                }
                 if (imagem.path.isNotBlank() && imagem.legenda.isBlank()) {
                     list.add(SectionError(id, titulo, "Legenda da Foto", "A legenda da foto é obrigatória"))
                 }
@@ -237,18 +234,26 @@ sealed interface ReportSection {
                                 list.add(SectionError(id, nomeSecao, "Bloco de Texto #${index + 1} em branco"))
                             }
                         }
+
                         is ReportBlock.GaleriaImagem -> {
                             if (bloco.imagens.isEmpty()) {
                                 list.add(SectionError(id, nomeSecao, "Galeria #${index + 1} não possui imagens"))
                             } else {
                                 bloco.imagens.forEachIndexed { imgIndex, img ->
                                     if (img.path.isBlank()) {
-                                        list.add(SectionError(id, nomeSecao, "Imagem #${imgIndex + 1} da Galeria #${index + 1} sem arquivo"))
+                                        list.add(
+                                            SectionError(
+                                                id,
+                                                nomeSecao,
+                                                "Imagem #${imgIndex + 1} da Galeria #${index + 1} sem arquivo"
+                                            )
+                                        )
                                     }
                                 }
                             }
                         }
-                        is ReportBlock.QuebraPagina -> { }
+
+                        is ReportBlock.QuebraPagina -> {}
                     }
                 }
                 return list
