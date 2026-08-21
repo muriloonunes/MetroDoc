@@ -57,8 +57,13 @@ class PdfParser {
             RegexOption.IGNORE_CASE
         )
 
-        val INSPECT_DATA_ROW = Regex(
+        val INSPECT_TABLE_ROW = Regex(
             "^(.*?)\\s+([A-Za-z_#]+)\\s+([-+0-9.,\\s]+)$",
+            RegexOption.IGNORE_CASE
+        )
+
+        val INSPECT_BLOCK_ROW = Regex(
+            "^([^\\s+0-9-][\\w_#?]*)\\s+([-+0-9.,\\s]+)$",
             RegexOption.IGNORE_CASE
         )
 
@@ -261,8 +266,11 @@ class PdfParser {
         val linhas = pdfText.lines()
         val medicoes = mutableListOf<MeasurementData>()
 
-        var isDentroTabela = false
+        var isModoTabela = false
+        var isLendoBloco = false
         var softwareVersion = "ZEISS INSPECT"
+        var nomeMedicaoAtual = ""
+        var ultimaLinhaValida = ""
 
         for (linha in linhas) {
             val trimmed = linha.trim()
@@ -275,18 +283,28 @@ class PdfParser {
                 continue
             }
 
-            if (lower.startsWith("element datum property") || lower.startsWith("nominal atual")) {
-                isDentroTabela = true
+            // Resetadores de Estado (Finais de página / Rodapés)
+            if (lower.startsWith("alinhamento") || lower.startsWith("unidade de comprimento") ||
+                lower.startsWith("pr") || lower.startsWith("pré") || lower.matches(Regex("^\\d+/\\d+$"))
+            ) {
+                isModoTabela = false
+                isLendoBloco = false
+                continue
+            }
+
+            if (lower.startsWith("element datum property")) {
+                isModoTabela = true
+                isLendoBloco = false
                 continue
             }
 
             if (lower.startsWith("alinhamento original") || lower.startsWith("unidade de comprimento")) {
-                isDentroTabela = false
+                isModoTabela = false
                 continue
             }
 
-            if (isDentroTabela) {
-                val match = ZeissReportRegex.INSPECT_DATA_ROW.find(trimmed)
+            if (isModoTabela) {
+                val match = ZeissReportRegex.INSPECT_TABLE_ROW.find(trimmed)
                 if (match != null) {
                     val nomeElemento = match.groupValues[1].trim() // Ex: Defeito do volume 1.Vp.147
                     val propriedade = match.groupValues[2].trim()  // Ex: Vp
@@ -294,10 +312,37 @@ class PdfParser {
 
                     val tokensNumericos = numerosBrutos.split("\\s+".toRegex())
 
-                    // Adaptador para normalizar os dados do Inspect no seu MeasurementData
                     val medicao = processarTokensInspect(nomeElemento, propriedade, tokensNumericos)
                     medicoes.add(medicao)
                 }
+                ultimaLinhaValida = trimmed
+                continue
+            }
+
+            if (lower.contains("nominal atual") || lower.contains("nominal actual")) {
+                isLendoBloco = true
+                isModoTabela = false
+                nomeMedicaoAtual = ultimaLinhaValida
+                continue
+            }
+
+            if (isLendoBloco) {
+                val match = ZeissReportRegex.INSPECT_BLOCK_ROW.find(trimmed)
+                if (match != null) {
+
+                    val numeros = match.groupValues[2].trim().split("\\s+".toRegex())
+
+                    val medicao = processarTokensInspect(
+                        nome = nomeMedicaoAtual,
+                        propriedade = "",
+                        tokens = numeros
+                    )
+                    medicoes.add(medicao)
+                    continue
+                }
+            }
+            if (!lower.startsWith("compara") && !lower.startsWith("medidas") && !lower.startsWith("a vs b")) {
+                ultimaLinhaValida = trimmed
             }
         }
         return ReportData(
@@ -363,7 +408,7 @@ class PdfParser {
         var atual = "-"
         var desvio = "-"
 
-        val nomeFormatado = "$nome ($propriedade)"
+        val nomeFormatado = if (propriedade.isNotEmpty()) "$nome ($propriedade)" else nome
 
         when (tokens.size) {
             1 -> {
