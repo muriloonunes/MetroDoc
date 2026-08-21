@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -38,10 +39,10 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.flow.Flow
-import metrodoc.shared.generated.resources.Res
-import metrodoc.shared.generated.resources.add
+import metrodoc.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.senai.metrodoc.common.database.dto.ProjectDto
+import org.senai.metrodoc.common.theme.isSystemInDarkTheme
 import org.senai.metrodoc.common.theme.metroDocDefaultScrollbarStyle
 import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdf
 import org.senai.metrodoc.common.util.PdfGenerator.Companion.savePdfsBatch
@@ -231,6 +232,40 @@ fun WelcomeContent(
                 target = dragAndDropTarget
             )
     ) {
+        val logoCentro = if (isSystemInDarkTheme()) Res.drawable.logo_cem_branca else Res.drawable.logo_cem
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "MetroDoc",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.logo_senai),
+                    contentDescription = "SENAI",
+                    modifier = Modifier.height(28.dp)
+                )
+
+                VerticalDivider(
+                    modifier = Modifier.height(20.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+
+                Image(
+                    painter = painterResource(logoCentro),
+                    contentDescription = "CEM",
+                    modifier = Modifier.height(28.dp)
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()

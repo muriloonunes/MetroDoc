@@ -1,13 +1,18 @@
 package org.senai.metrodoc.common.theme
 
 import androidx.compose.foundation.ScrollbarStyle
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.jthemedetecor.OsThemeDetector
+import java.util.function.Consumer
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -237,9 +242,28 @@ private val highContrastDarkColorScheme = darkColorScheme(
     surfaceContainerHighest = surfaceContainerHighestDarkHighContrast,
 )
 
+//https://stackoverflow.com/questions/79483920/how-to-react-to-changes-in-desktop-system-theme-in-kmp-to-change-color-scheme
+@Composable
+fun isSystemInDarkTheme(): Boolean {
+    val isSystemInDarkTheme = isSystemInDarkTheme().let { currentValue ->
+        remember(currentValue) { mutableStateOf(currentValue) }
+    }
+    DisposableEffect(isSystemInDarkTheme) {
+        val listener = Consumer<Boolean> {
+            isSystemInDarkTheme.value = it
+        }
+        val detector = OsThemeDetector.getDetector()
+        detector.registerListener(listener)
+        onDispose {
+            detector.removeListener(listener)
+        }
+    }
+    return isSystemInDarkTheme.value
+}
+
 @Composable
 fun MetroDocTheme(
-    isDarkTheme: Boolean = OsThemeDetector.getDetector().isDark,
+    isDarkTheme: Boolean = org.senai.metrodoc.common.theme.isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (isDarkTheme) darkScheme else lightScheme
